@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+     <style>
+    body {
+      background-image: url('https://bananatic-15199.kxcdn.com/es/photos/bananapedia/0a40e1d2ee71f218a7b318e76790cb1a.jpg');
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      background-color: #f0f0f0;
+    }
+
+    h1 {
+      color: #2c3e50;
+    }
+
+    #contador {
+      font-size: 2rem;
+      color: #e74c3c;
+      margin-top: 20px;
+    }
+  </style>
+    <title>Contador turnament</title>
+</head>
+<body>
+    <h1>Contador del torneo(¿Cuando es?)</h1>
+    <div id="contador">Cargando...</div>
+<script>
+  // Hora actual
+  const ahora = new Date();
+
+  // Base: hoy a las 5:15 PM
+  const base = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 17, 15, 0);
+
+  // Sumar 2 días exactos
+  const torneo = new Date(base.getTime() + 2 * 24 * 60 * 60 * 1000); // 2 días en ms
+
+  function actualizarContador() {
+    const ahora = new Date().getTime();
+    const diferencia = torneo.getTime() - ahora;
+
+    if (diferencia <= 0) {
+      document.getElementById("contador").innerHTML = "¡El torneo ha comenzado!";
+      clearInterval(intervalo);
+      return;
+    }
+
+    const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+    const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+    const segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
+
+    document.getElementById("contador").innerHTML =
+      `${dias}d ${horas}h ${minutos}m ${segundos}s restantes`;
+  }
+
+  const intervalo = setInterval(actualizarContador, 1000);
+</script>
+
+</body>
+</html>
