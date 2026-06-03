@@ -199,7 +199,7 @@ def dibujar_panel_inferior(ax, st):
     ax.axis("off")
 
     # ─── 3ER PUESTO (centrado en x=5) ─────────────────────────────
-    ax.text(5.0, 8.0, "[  3  ]  3ER PUESTO", ha="center", fontsize=12,
+    ax.text(5.0, 8.0, "        3ER PUESTO", ha="center", fontsize=12,
             fontweight="bold", color="#cd7f32")
 
     sl = st["semifinal_losers"]
@@ -237,10 +237,10 @@ def dibujar_panel_inferior(ax, st):
             fontweight="bold", color="#ffffff")
 
     podio = [
-        (" 1  1er", st["wb"][4][0],  "champ"),
-        (" 2  2do", _subcampeon(st), "final_w"),
-        (" 3  3er", st["tercero"],    "bronze"),
-        ("     4to", st["cuarto"],    "empty"),
+        ("    1er", st["wb"][4][0],  "champ"),
+        ("    2do", _subcampeon(st), "final_w"),
+        ("    3er", st["tercero"],    "bronze"),
+        ("    4to", st["cuarto"],    "empty"),
     ]
     for k, (label, nombre, estilo) in enumerate(podio):
         yp = 6.5 - k * 1.35
