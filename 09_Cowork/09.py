@@ -278,7 +278,7 @@ def dibujar_bracket(ax, st):
         dir_s    = +1 if izq else -1
 
         # Etiquetas de ronda (BeaNabi: fontsize=20)
-        etiquetas = ["OCTAVOS", "CUARTOS", "SEMIFINAL", "FINAL"]
+        etiquetas = ["OCTAVOS", "CUARTOS", "SEMIFINAL"]
         for r, (x, lbl) in enumerate(zip(xs, etiquetas)):
             ax.text(x, y_lbl, lbl, ha="center", va="bottom",
                     fontsize=20, fontweight="bold", color="#7070aa")
@@ -428,7 +428,7 @@ def dibujar_panel_inferior(ax, st):
 
     draw_box(ax, X3, Y_WIN, st["tercero"], "bronze", w=BOT_W, h=BOT_H, fontsize=FS)
     if st["tercero"]:
-        ax.text(X3, Y_LBL, "3er Puesto", ha="center", va="center",
+        ax.text(X3, Y_LBL-0.4, "3er Puesto", ha="center", va="center",
                 fontsize=FS - 2, fontweight="bold", color="#cd7f32")
 
     # =================================================================
@@ -540,7 +540,7 @@ def correr_torneo(jugadores, out_dir=None):
     sets_jugados = 0
 
     # Banner inicial (Flujo_de_Trabajo)
-    render(st, banner="⏳  Esperando el primer partido...", ruta=ruta_actual)
+    render(st, banner="Esperando el primer partido...", ruta=ruta_actual)
     print("\n" + "="*60)
     print("  TORNEO 16 JUGADORES - ELIMINACION DIRECTA")
     print("  [0] en cualquier momento para RETROCEDER")
@@ -565,7 +565,7 @@ def correr_torneo(jugadores, out_dir=None):
                 st, prev_idx = historial.pop()
                 idx          = prev_idx
                 sets_jugados = max(0, sets_jugados - 1)
-                print("  Partido deshecho.")
+                print("Partido deshecho.")
                 # Banner de retroceso (Flujo_de_Trabajo)
                 render(st, banner=f"↩  Partido deshecho  —  Retrocediendo al SET {sets_jugados}", ruta=ruta_actual)
             continue
@@ -576,7 +576,7 @@ def correr_torneo(jugadores, out_dir=None):
         sets_jugados += 1
         # Banner de partido (Flujo_de_Trabajo)
         render(st,
-               banner=f"🎮  Partido {sets_jugados}  ·  {p['label']}  →  avanzó  {ganador}",
+               banner=f"Partido {sets_jugados}  ·  {p['label']}  →  avanzó  {ganador}",
                ruta=ruta_actual)
         print(f"  Avanza: {ganador}")
         idx += 1
