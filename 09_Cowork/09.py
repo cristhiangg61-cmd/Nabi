@@ -68,8 +68,8 @@ N_SIDE = 8   # jugadores por lado
 
 # Posiciones X de cada ronda. Paso fijo = 4.0 u.
 STEP = 4.0
-XS_IZQ = [-13.5, -9.5, -6.5, -3.5]
-XS_DER = [ 13.5,  9.5,  6.5,  3.5]
+XS_IZQ = [-13.5, -9.5, -6, -2.5]
+XS_DER = [ 13.5,  9.5,  6,  2.5]
 
 # Límites del panel superior (bracket)
 XLIM_TOP = (-17.5, 17.5)
