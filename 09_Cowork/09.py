@@ -413,8 +413,8 @@ def dibujar_panel_inferior(ax, st):
     # =================================================================
     X3 = 9.0
 
-    draw_medal(ax, X3 - 3.5, Y_HEAD, 3, r=0.44)
-    ax.text(X3 - 0.5, Y_HEAD, "3ER PUESTO", ha="center", va="center",
+    draw_medal(ax, X3 - 2.5, Y_HEAD, 3, r=0.44)
+    ax.text(X3 + 0.5, Y_HEAD, "3ER PUESTO", ha="center", va="center",
             fontsize=FS, fontweight="bold", color="#cd7f32")
 
     xa3 = X3 - 3.0
@@ -439,7 +439,7 @@ def dibujar_panel_inferior(ax, st):
 
     ax.text(XP, Y_HEAD, "PODIO", ha="center", va="center",
             fontsize=FS, fontweight="bold", color="#ffffff")
-    ax.plot([21.5, 34.5], [Y_HEAD - 0.52, Y_HEAD - 0.52],
+    ax.plot([20.5, 33.5], [Y_HEAD - 0.52, Y_HEAD - 0.52],
             color=C["sep"], lw=1.2, zorder=1)
 
     podio = [
@@ -453,15 +453,15 @@ def dibujar_panel_inferior(ax, st):
         yp = 8.6 - (pos - 1) * ROW
 
         if pos <= 3:
-            draw_medal(ax, 22.5, yp, pos, r=0.39)
+            draw_medal(ax, XP - 3.5, yp, pos, r=0.39)
         else:
-            ax.text(22.5, yp, "4to", ha="center", va="center",
+            ax.text(XP - 3.5, yp, "4to", ha="center", va="center",
                     fontsize=FS, fontweight="bold", color=color_lbl, zorder=5)
 
-        ax.text(23.6, yp + 0.10, lbl, ha="left", va="center",
+        ax.text(XP - 2.0, yp + 0.10, lbl, ha="left", va="center",
                 fontsize=FS, fontweight="bold", color=color_lbl)
 
-        draw_box(ax, 30.0, yp, nombre, estilo if nombre else "empty",
+        draw_box(ax, XP + 3.5, yp, nombre, estilo if nombre else "empty",
                  w=BOT_W, h=BOT_H, fontsize=FS, z=3)
 
 
