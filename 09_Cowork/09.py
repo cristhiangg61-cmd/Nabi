@@ -1,20 +1,19 @@
 """
-Torneo_BeaNabi.py  —  Renderizador v5 (unificado)
-==================================================
-Fusión de:
-  · Torneo_BeaNabi.py    → tamaños visuales preferidos (FS=25, fuentes grandes)
-  · Flujo_de_Trabajo.py  → lógica mejorada (banners con emojis, draw_box_champ
-                           proporcional, panel inferior con referencias dinámicas)
+Torneo_BeaNabi.py  —  Versión final
+=====================================
+Bracket de eliminación directa para 16 jugadores.
 
-Cambios respecto a v4 (BeaNabi):
-  - draw_box_champ usa BOX_W*1.35 / BOX_H*1.35 / FS+2 (proporcional, no fijo)
-  - champ_top calculado con BOX_H*1.35 (consistente con la caja real)
-  - Panel inferior: BW3 y BW_F usan BOX_W como referencia dinámica
-  - Fuentes del panel inferior se alinean con FS (no hardcodeadas a 20/12.5)
-  - Banner inicial: "⏳  Esperando el primer partido..."
-  - Banner de retroceso: "↩  Partido deshecho  —  Retrocediendo al SET {n}"
-  - Banner de partido:   "🎮  Partido {n}  ·  {label}  →  avanzó  {ganador}"
-  - Título de figura:    fontsize=22 (más compacto, no tapa el bracket)
+Estructura:
+  · Panel superior : bracket con 4 columnas por lado
+                     (OCTAVOS -> CUARTOS -> SEMIFINAL -> FINAL -> CAMPEON)
+  · Panel inferior : 3er Puesto (izquierda) + Podio (derecha)
+
+Geometría del bracket (posiciones X por lado):
+  0 = OCTAVOS    x = ±13.5   (N = 8)
+  1 = CUARTOS    x = ± 9.5   (N = 4)
+  2 = SEMIFINAL  x = ± 6.0   (N = 2)
+  3 = FINAL      x = ± 2.5   (N = 1)
+  Centro         x =   0.0   (Campeón, debajo de los finalistas)
 """
 
 import re
@@ -23,11 +22,10 @@ import copy
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, Circle
 
 # =====================================================================
-#  JUGADORES (placeholder — reemplaza con los reales)
+#  JUGADORES  —  reemplaza estos nombres con los reales del torneo
 # =====================================================================
 JUGADORES = [
     "Jugador 1",  "Jugador 2",  "Jugador 3",  "Jugador 4",
@@ -40,34 +38,34 @@ JUGADORES = [
 #  PALETA DE COLORES
 # =====================================================================
 C = {
-    "bg":      "#0b0b1a",   # fondo general
-    "azul":    ("#1a4a8a", "#4d9fff"),   # lado izquierdo (octavos)
-    "rojo":    ("#8a1a1a", "#ff4d4d"),   # lado derecho  (octavos)
-    "win":     ("#1a5c2e", "#50e87a"),   # ganadores de ronda
-    "final_w": ("#6b3a00", "#ffb347"),   # finalistas
-    "champ":   ("#5c4500", "#ffd700"),   # campeón
-    "silver":  ("#353535", "#c0c0c0"),   # subcampeón
-    "bronze":  ("#4a2800", "#cd7f32"),   # 3er puesto
-    "empty":   ("#0f0f20", "#252545"),   # casilla vacía
-    "line":    "#3a3a6a",               # conectores del bracket
-    "sep":     "#2a2a50",               # separadores de sección
+    "bg":      "#0b0b1a",              # fondo general
+    "azul":    ("#1a4a8a", "#4d9fff"), # lado izquierdo (octavos)
+    "rojo":    ("#8a1a1a", "#ff4d4d"), # lado derecho  (octavos)
+    "win":     ("#1a5c2e", "#50e87a"), # ganadores de ronda
+    "final_w": ("#6b3a00", "#ffb347"), # finalistas
+    "champ":   ("#5c4500", "#ffd700"), # campeón
+    "silver":  ("#353535", "#c0c0c0"), # subcampeón
+    "bronze":  ("#4a2800", "#cd7f32"), # 3er puesto
+    "empty":   ("#0f0f20", "#252545"), # casilla vacía
+    "line":    "#3a3a6a",              # conectores del bracket
+    "sep":     "#2a2a50",              # separadores de sección
 }
 
 # =====================================================================
-#  GEOMETRÍA — valores fijos para TODA la figura
+#  GEOMETRÍA — valores fijos para toda la figura
 # =====================================================================
 
-# Dimensiones de caja: IGUALES para todas las rondas del bracket.
-BOX_W  = 2.7    # ancho fijo
-BOX_H  = 0.84   # alto fijo
-FS     = 25     # fontsize fijo (BeaNabi) — todas las cajas del bracket
+# Dimensiones de caja: iguales para todas las rondas del bracket.
+BOX_W = 2.7   # ancho de cada caja
+BOX_H = 0.84  # alto  de cada caja
+FS    = 25    # tamaño de fuente para todas las cajas del bracket
 
 # Separación vertical entre jugadores en octavos.
 GAP_Y  = 1.5
-N_SIDE = 8   # jugadores por lado
+N_SIDE = 8    # jugadores por lado (8 por cada mitad = 16 en total)
 
-# Posiciones X de cada ronda. Paso fijo = 4.0 u.
-STEP = 4.0
+# Posiciones X de cada columna (izquierda y derecha).
+# El paso se reduce hacia el centro para dar espacio al campeón.
 XS_IZQ = [-13.5, -9.5, -6, -2.5]
 XS_DER = [ 13.5,  9.5,  6,  2.5]
 
@@ -75,15 +73,15 @@ XS_DER = [ 13.5,  9.5,  6,  2.5]
 XLIM_TOP = (-17.5, 17.5)
 YLIM_TOP = (-2.2, 14.5)
 
-# Límites del panel inferior (3er, final, podio)
+# Límites del panel inferior (3er puesto + podio)
 XLIM_BOT = (0.0, 36.0)
 YLIM_BOT = (0.0, 12.0)
 
-# Y de referencia dentro del panel inferior
-Y_HEAD  = 9.9    # encabezados de sección
-Y_CONT  = 7.7    # cajas de contendientes (semifinal-losers / finalistas)
-Y_WIN   = 5.5    # caja del ganador (3er / campeón)
-Y_LBL   = 4.55   # etiqueta bajo el ganador
+# Posiciones Y de referencia en el panel inferior
+Y_HEAD = 9.9   # encabezados de sección
+Y_CONT = 7.7   # cajas de contendientes
+Y_WIN  = 5.5   # caja del ganador
+Y_LBL  = 4.55  # etiqueta bajo el ganador
 
 
 # =====================================================================
@@ -91,14 +89,14 @@ Y_LBL   = 4.55   # etiqueta bajo el ganador
 # =====================================================================
 
 def estado_inicial(jugadores):
-    """Devuelve el estado inicial para 16 jugadores en single elimination."""
+    """Devuelve el estado inicial para 16 jugadores en eliminación directa."""
     return {
         "wb": [
-            list(jugadores),   # ronda 0: 16 (octavos)
-            [None] * 8,        # ronda 1: 8  (cuartos)
-            [None] * 4,        # ronda 2: 4  (semis)
-            [None] * 2,        # ronda 3: 2  (finalistas)
-            [None] * 1,        # ronda 4: 1  (campeón)
+            list(jugadores),   # ronda 0: 16 jugadores (octavos)
+            [None] * 8,        # ronda 1:  8 jugadores (cuartos)
+            [None] * 4,        # ronda 2:  4 jugadores (semifinal)
+            [None] * 2,        # ronda 3:  2 jugadores (final)
+            [None] * 1,        # ronda 4:  1 jugador   (campeón)
         ],
         "semifinal_losers": [None, None],
         "tercero": None,
@@ -117,8 +115,9 @@ def _oct_ys():
 
 def _get_y(ronda, slot, oct_ys):
     """
-    Calcula la Y del slot 'slot' en 'ronda' de forma recursiva.
-    Y(r, j) = promedio de Y(r-1, 2j) e Y(r-1, 2j+1) → conectores centrados exactos.
+    Calcula la Y del slot en la ronda indicada de forma recursiva.
+    Y(r, j) = promedio de Y(r-1, 2j) e Y(r-1, 2j+1)
+    Garantiza que los conectores queden centrados exactamente.
     """
     if ronda == 0:
         return oct_ys[slot]
@@ -133,9 +132,9 @@ def _get_y(ronda, slot, oct_ys):
 
 def draw_box(ax, cx, cy, nombre, estilo, w=BOX_W, h=BOX_H, fontsize=FS, z=3):
     """
-    Caja redondeada de tamaño fijo.
-    - Si nombre is None → caja vacía punteada semitransparente.
-    - Si nombre no es None → caja rellena con texto centrado.
+    Dibuja una caja redondeada centrada en (cx, cy).
+    - nombre=None  -> caja vacía punteada semitransparente.
+    - nombre!=None -> caja rellena con el texto centrado.
     """
     if nombre is None:
         fc, ec = C["empty"]
@@ -161,10 +160,8 @@ def draw_box(ax, cx, cy, nombre, estilo, w=BOX_W, h=BOX_H, fontsize=FS, z=3):
 
 def draw_box_champ(ax, cx, cy, nombre, w=BOX_W*1.35, h=BOX_H*1.35, fontsize=FS+2):
     """
-    Caja especial del campeón (Flujo_de_Trabajo):
-      · Proporcional: BOX_W*1.35, BOX_H*1.35, FS+2
-      · Efecto de glow dorado en capas concéntricas.
-      · Texto en color oro brillante.
+    Caja especial del campeón con efecto de brillo dorado en capas concéntricas.
+    Tamaño proporcional: BOX_W*1.35 de ancho, BOX_H*1.35 de alto, FS+2 de fuente.
     """
     if nombre is None:
         draw_box(ax, cx, cy, None, "empty", w=w, h=h, fontsize=fontsize, z=4)
@@ -196,8 +193,8 @@ def draw_line(ax, x1, y1, x2, y2, lw=1.5, color=None, z=1):
 
 def draw_bracket_connector(ax, x_src, y_top, y_bot, x_dst, y_mid):
     """
-    Conector estándar de bracket (forma de gancho).
-    xm = (x_src + x_dst) / 2 garantiza gancho simétrico.
+    Conector tipo bracket (forma de gancho horizontal).
+    xm = punto medio garantiza el gancho simétrico.
     """
     xm = (x_src + x_dst) / 2
     draw_line(ax, x_src, y_top, xm,    y_top)
@@ -208,8 +205,10 @@ def draw_bracket_connector(ax, x_src, y_top, y_bot, x_dst, y_mid):
 
 def draw_match_connector_horiz(ax, xa, xb, y_cont, xc, yc_top):
     """
-    Conector para un partido donde ambos contendientes están al mismo Y.
-    Usado en 3er Puesto y Gran Final del panel inferior.
+    Conector horizontal para dos contendientes al mismo Y.
+    Une los bordes internos de (xa) y (xb) hacia el punto central (xc),
+    luego baja verticalmente hasta (yc_top).
+    Usado en la sección de 3er Puesto del panel inferior.
     """
     edge_a = xa + BOX_W / 2
     edge_b = xb - BOX_W / 2
@@ -220,8 +219,8 @@ def draw_match_connector_horiz(ax, xa, xb, y_cont, xc, yc_top):
 
 def draw_medal(ax, cx, cy, pos, r=0.42):
     """
-    Medalla circular con número, color de posición y etiqueta textual.
-    pos=1 → Oro, pos=2 → Plata, pos=3 → Bronce.
+    Dibuja una medalla circular con número y etiqueta de posición.
+    pos=1 -> Oro, pos=2 -> Plata, pos=3 -> Bronce.
     """
     paleta = {
         1: ("#a07800", "#ffd700", "ORO"),
@@ -233,14 +232,14 @@ def draw_medal(ax, cx, cy, pos, r=0.42):
     fc, ec, label = paleta[pos]
     ax.add_patch(Circle((cx, cy), r + 0.07, fc=C["bg"], ec=ec, lw=2.2, zorder=5))
     ax.add_patch(Circle((cx, cy), r,         fc=fc,      ec=ec, lw=1.2, zorder=6))
-    ax.text(cx, cy,          str(pos), ha="center", va="center",
+    ax.text(cx, cy,           str(pos), ha="center", va="center",
             fontsize=10, fontweight="bold", color="#ffffff", zorder=7)
-    ax.text(cx, cy - r - 0.16, label, ha="center", va="top",
+    ax.text(cx, cy - r - 0.16, label,  ha="center", va="top",
             fontsize=7.5, fontweight="bold", color=ec, zorder=7)
 
 
 def draw_section_divider(ax, x, y0=0.5, y1=10.7):
-    """Línea punteada vertical que delimita las secciones del panel inferior."""
+    """Línea punteada vertical que delimita secciones en el panel inferior."""
     ax.plot([x, x], [y0, y1],
             color=C["sep"], lw=1.0, ls="--", zorder=1, alpha=0.55)
 
@@ -251,13 +250,14 @@ def draw_section_divider(ax, x, y0=0.5, y1=10.7):
 
 def dibujar_bracket(ax, st):
     """
-    Dibuja el bracket completo de 16 jugadores en el eje ax.
+    Dibuja el bracket completo de 16 jugadores.
 
-    Columnas (por lado):
-      0 = OCTAVOS  x = ±13.5   (N=8)
-      1 = CUARTOS  x = ± 9.5   (N=4)
-      2 = SEMIS    x = ± 5.5   (N=2)
-      3 = FINAL    x = ± 1.5   (N=1)
+    Columnas por lado:
+      0 = OCTAVOS    x = ±13.5   (N=8)
+      1 = CUARTOS    x = ± 9.5   (N=4)
+      2 = SEMIFINAL  x = ± 6.0   (N=2)
+      3 = FINAL      x = ± 2.5   (N=1)
+      Centro         x =   0.0   (campeón, debajo de los finalistas)
     """
     ax.set_facecolor(C["bg"])
     ax.set_xlim(*XLIM_TOP)
@@ -265,8 +265,8 @@ def dibujar_bracket(ax, st):
     ax.axis("off")
 
     oct_ys   = _oct_ys()
-    y_lbl    = oct_ys[0] + 1.1    # Y de etiquetas de ronda
-    y_titulo = oct_ys[0] + 2.6    # Y de "LADO AZUL / LADO ROJO"
+    y_lbl    = oct_ys[0] + 1.1   # Y de las etiquetas de columna
+    y_titulo = oct_ys[0] + 2.6   # Y de los títulos "LADO AZUL / LADO ROJO"
     rondas   = st["wb"]
 
     for lado in ("izq", "der"):
@@ -277,19 +277,19 @@ def dibujar_bracket(ax, st):
         titulo   = "LADO AZUL" if izq else "LADO ROJO"
         dir_s    = +1 if izq else -1
 
-        # Etiquetas de ronda (BeaNabi: fontsize=20)
+        # Etiquetas de columna sobre cada ronda
         etiquetas = ["OCTAVOS", "CUARTOS", "SEMIFINAL"]
         for r, (x, lbl) in enumerate(zip(xs, etiquetas)):
             ax.text(x, y_lbl, lbl, ha="center", va="bottom",
                     fontsize=20, fontweight="bold", color="#7070aa")
 
-        # Título del lado (BeaNabi: fontsize=25)
+        # Título del lado
         ax.text(xs[1], y_titulo, titulo, ha="center", va="bottom",
                 fontsize=25, fontweight="bold", color="#ccccff")
 
         estilos = {0: col_base, 1: "win", 2: "win", 3: "final_w"}
 
-        # Cajas (todas con BOX_W, BOX_H, FS constantes — ronda 3 se dibuja al centro)
+        # Cajas de las rondas 0-2 (la columna FINAL se dibuja en el bloque central)
         for r in range(3):
             n_slots = N_SIDE >> r
             for j in range(n_slots):
@@ -299,7 +299,8 @@ def dibujar_bracket(ax, st):
                 cy     = _get_y(r, j, oct_ys)
                 draw_box(ax, cx, cy, nombre, estilos[r])
 
-        # Conectores bracket rondas 1-3 (la ronda 3 conecta semis → finalistas)
+        # Conectores tipo bracket para rondas 1-3
+        # (r=3 conecta las semis con los finalistas en la columna FINAL)
         for r in range(1, 4):
             n_match = N_SIDE >> r
             for j in range(n_match):
@@ -310,15 +311,14 @@ def dibujar_bracket(ax, st):
                 x_dst = xs[r]     - dir_s * (BOX_W / 2)
                 draw_bracket_connector(ax, x_src, y_top, y_bot, x_dst, y_mid)
 
-    # ── CENTRO: finalistas en columna FINAL (±1.5) + caja campeón en el centro ──
-    y_fin = _get_y(3, 0, oct_ys)
+    # ── ZONA CENTRAL: columna FINAL (±2.5) + caja del campeón ──────────
+    y_fin = _get_y(3, 0, oct_ys)   # Y de los finalistas
     cx    = 0.0
 
-    # Los finalistas van en la columna FINAL (xs[3] = ±1.5)
-    X_FIN_IZQ = XS_IZQ[3]   # -3.5
-    X_FIN_DER = XS_DER[3]   # +3.5
+    # Finalistas en la columna FINAL (xs[3] = ±2.5)
+    X_FIN_IZQ = XS_IZQ[3]   # -2.5
+    X_FIN_DER = XS_DER[3]   # +2.5
 
-    # Dibujar finalistas en esa posición
     draw_box(ax, X_FIN_IZQ, y_fin, st["wb"][3][0],
              "azul" if st["wb"][3][0] else "final_w")
     draw_box(ax, X_FIN_DER, y_fin, st["wb"][3][1],
@@ -332,13 +332,13 @@ def dibujar_bracket(ax, st):
                       ec="#b8860b", lw=1.5, alpha=0.95),
             zorder=6)
 
-    # Caja campeón DEBAJO de los finalistas
+    # Caja del campeón, ubicada debajo de los dos finalistas
     champ_w = BOX_W * 1.1
     y_champ = y_fin - 2.0
     draw_box_champ(ax, cx, y_champ, st["wb"][4][0],
                    w=champ_w, h=BOX_H * 1.35, fontsize=FS + 2)
 
-    # Conector descendente: bracket desde cada finalista hacia abajo al campeón
+    # Conector descendente desde cada finalista hacia la caja del campeón
     y_bot_fin   = y_fin   - BOX_H / 2
     y_top_champ = y_champ + BOX_H * 1.35 / 2
     y_mid_conn  = (y_bot_fin + y_top_champ) / 2
@@ -347,7 +347,7 @@ def dibujar_bracket(ax, st):
     draw_line(ax, X_FIN_IZQ, y_mid_conn, X_FIN_DER, y_mid_conn)
     draw_line(ax, cx,        y_mid_conn, cx,         y_top_champ)
 
-    # Texto "CAMPEON!" y estrellas debajo del campeón
+    # Texto "CAMPEON!" y estrellas debajo de la caja del campeón
     if st["wb"][4][0]:
         ax.text(cx, y_champ - BOX_H * 1.35 / 2 - 0.28,
                 "CAMPEON!", ha="center", va="top",
@@ -358,11 +358,11 @@ def dibujar_bracket(ax, st):
 
 
 # =====================================================================
-#  PANEL INFERIOR — 3er PUESTO / GRAN FINAL / PODIO
+#  PANEL INFERIOR — 3ER PUESTO + PODIO
 # =====================================================================
 
 def _subcampeon(st):
-    """Finalista que perdió la Gran Final (subcampeón)."""
+    """Devuelve al finalista que perdió la Gran Final (subcampeón)."""
     fin   = st["wb"][3]
     champ = st["wb"][4][0]
     if champ is None or fin[0] is None or fin[1] is None:
@@ -372,21 +372,20 @@ def _subcampeon(st):
 
 def dibujar_panel_inferior(ax, st):
     """
-    Panel inferior con 3 secciones de 12 u. cada una (xlim=0..36):
-      Sección 1 [centro=6 ] → 3er Puesto
-      Sección 2 [centro=18] → Gran Final + Campeón
-      Sección 3 [centro=30] → Podio
+    Panel inferior dividido en dos secciones simétricas (xlim = 0..36):
 
-    BOT_W / BOT_H: dimensiones reescaladas para que las cajas del panel
-    inferior tengan el mismo tamaño FÍSICO (píxeles) que las del bracket
-    superior, compensando la diferencia de rango de coordenadas y la
-    proporción de altura entre subplots (height_ratios=[2.1, 1.0]).
+      Sección 1 [centro x =  9] -> 3er Puesto
+        Partido entre los perdedores de semifinal y el ganador del bronce.
 
-      Panel superior: x_range=35, y_range=15.7, ratio=2.1
-      Panel inferior: x_range=36, y_range=11.0, ratio=1.0
+      Sección 2 [centro x = 27] -> Podio
+        Clasificación final: Oro, Plata, Bronce y 4to puesto.
 
-      BOT_W = BOX_W * (36/35)             ≈ 2.777
-      BOT_H = BOX_H * (11.0/15.7) * 2.1  ≈ 1.236
+    BOT_W / BOT_H: dimensiones de caja reescaladas para igualar el tamaño
+    físico del bracket superior, compensando diferencias de rango de
+    coordenadas y proporciones de altura (height_ratios=[2.1, 1.0]).
+
+        BOT_W = BOX_W * (36/35)            ~= 2.777
+        BOT_H = BOX_H * (11.0/15.7) * 2.1 ~= 1.236
     """
     ax.set_facecolor(C["bg"])
     ax.set_xlim(*XLIM_BOT)
@@ -394,18 +393,18 @@ def dibujar_panel_inferior(ax, st):
     ax.axis("off")
 
     # Dimensiones de caja corregidas para igualar el tamaño físico del bracket
-    _X_RANGE_TOP = (XLIM_TOP[1] - XLIM_TOP[0])          # 35
-    _Y_RANGE_TOP = (YLIM_TOP[1] - YLIM_TOP[0])          # 15.7
-    _X_RANGE_BOT = (XLIM_BOT[1] - XLIM_BOT[0])          # 36
-    _Y_RANGE_BOT = (YLIM_BOT[1] - YLIM_BOT[0])          # 11.0
+    _X_RANGE_TOP = (XLIM_TOP[1] - XLIM_TOP[0])   # 35
+    _Y_RANGE_TOP = (YLIM_TOP[1] - YLIM_TOP[0])   # ~15.7
+    _X_RANGE_BOT = (XLIM_BOT[1] - XLIM_BOT[0])   # 36
+    _Y_RANGE_BOT = (YLIM_BOT[1] - YLIM_BOT[0])   # ~11.0
     _RATIO_TOP   = 2.1
     _RATIO_BOT   = 1.0
     BOT_W = BOX_W * (_X_RANGE_BOT / _X_RANGE_TOP)
     BOT_H = BOX_H * (_Y_RANGE_BOT / _Y_RANGE_TOP) * (_RATIO_TOP / _RATIO_BOT)
 
-    sl  = st["semifinal_losers"]
+    sl = st["semifinal_losers"]
 
-    # Solo un divisor central entre 3er puesto y podio
+    # Línea divisoria central entre las dos secciones
     draw_section_divider(ax, 18)
 
     # =================================================================
@@ -471,8 +470,8 @@ def dibujar_panel_inferior(ax, st):
 
 def render(st, banner=None, ruta=None, dpi=130):
     """
-    Genera la imagen completa del torneo.
-    Figura: 34 × 20 pulgadas a 130 DPI = 4420 × 2600 px.
+    Genera y guarda la imagen completa del torneo.
+    Figura: 34 x 20 pulgadas a 130 DPI = 4420 x 2600 px.
     """
     fig = plt.figure(figsize=(34, 20), facecolor=C["bg"])
     gs  = fig.add_gridspec(
@@ -488,7 +487,7 @@ def render(st, banner=None, ruta=None, dpi=130):
     dibujar_bracket(ax_top, st)
     dibujar_panel_inferior(ax_bot, st)
 
-    # Título principal (Flujo_de_Trabajo: fontsize=22)
+    # Título principal
     fig.suptitle(
         "TORNEO 16 JUGADORES  —  ELIMINACION DIRECTA",
         fontsize=25, fontweight="bold", color="#dde0ff",
@@ -515,6 +514,7 @@ def render(st, banner=None, ruta=None, dpi=130):
 # =====================================================================
 
 def pedir_ganador(p1, p2, etiqueta):
+    """Solicita por consola quién avanza en el partido indicado."""
     print(f"\n  --- {etiqueta} ---")
     print(f"  [1]  {p1}")
     print(f"  [2]  {p2}")
@@ -528,6 +528,11 @@ def pedir_ganador(p1, p2, etiqueta):
 
 
 def correr_torneo(jugadores, out_dir=None):
+    """
+    Ejecuta el torneo de forma interactiva por consola.
+    Por cada partido solicita el ganador y actualiza la imagen.
+    Permite retroceder partidos con la opción 0.
+    """
     if out_dir is None:
         try:    out_dir = os.path.dirname(os.path.abspath(__file__))
         except: out_dir = os.getcwd()
@@ -539,7 +544,7 @@ def correr_torneo(jugadores, out_dir=None):
     historial    = []
     sets_jugados = 0
 
-    # Banner inicial (Flujo_de_Trabajo)
+    # Banner inicial
     render(st, banner="Esperando el primer partido...", ruta=ruta_actual)
     print("\n" + "="*60)
     print("  TORNEO 16 JUGADORES - ELIMINACION DIRECTA")
@@ -566,24 +571,24 @@ def correr_torneo(jugadores, out_dir=None):
                 idx          = prev_idx
                 sets_jugados = max(0, sets_jugados - 1)
                 print("Partido deshecho.")
-                # Banner de retroceso (Flujo_de_Trabajo)
-                render(st, banner=f"↩  Partido deshecho  —  Retrocediendo al SET {sets_jugados}", ruta=ruta_actual)
+                # Banner de retroceso
+                render(st, banner=f"Partido deshecho  —  Retrocediendo al SET {sets_jugados}", ruta=ruta_actual)
             continue
 
         ganador, perdedor = resultado
         historial.append((copy.deepcopy(st), idx))
         _aplicar(st, p, ganador, perdedor)
         sets_jugados += 1
-        # Banner de partido (Flujo_de_Trabajo)
+        # Banner de partido
         render(st,
-               banner=f"Partido {sets_jugados}  ·  {p['label']}  →  avanzó  {ganador}",
+               banner=f"Partido {sets_jugados}  ·  {p['label']}  ->  avanzó  {ganador}",
                ruta=ruta_actual)
         print(f"  Avanza: {ganador}")
         idx += 1
 
     print(f"\n{'='*60}")
     print("  TORNEO FINALIZADO")
-    print(f"  1. Campeon:  {st['wb'][4][0]}")
+    print(f"  1. Campeón:  {st['wb'][4][0]}")
     print(f"  2. 2do:      {_subcampeon(st)}")
     print(f"  3. 3er:      {st['tercero']}")
     print(f"  4. 4to:      {st['cuarto']}")
@@ -592,11 +597,11 @@ def correr_torneo(jugadores, out_dir=None):
 
 
 # =====================================================================
-#  PARTIDOS DECLARATIVOS
+#  CONSTRUCCIÓN DE PARTIDOS
 # =====================================================================
 
 def _construir_partidos(jugadores):
-    """Construye la lista ordenada de partidos para single elimination."""
+    """Construye la lista ordenada de partidos para eliminación directa."""
     partidos = []
 
     for r, (etapa, n) in enumerate([
@@ -639,6 +644,7 @@ def _construir_partidos(jugadores):
 
 
 def _resolver(st, src):
+    """Devuelve el jugador en la posición indicada por src."""
     if src.startswith("wb["):
         r, i = map(int, re.findall(r"\d+", src))
         return st["wb"][r][i]
@@ -649,6 +655,7 @@ def _resolver(st, src):
 
 
 def _aplicar(st, p, ganador, perdedor):
+    """Escribe el resultado del partido en el estado del torneo."""
     _escribir(st, p["dst_win"], ganador)
     if p.get("dst_lose"):
         _escribir(st, p["dst_lose"], perdedor)
@@ -658,6 +665,7 @@ def _aplicar(st, p, ganador, perdedor):
 
 
 def _escribir(st, dst, valor):
+    """Actualiza una posición del estado a partir de su clave de destino."""
     if dst is None:
         return
     if dst.startswith("wb["):
