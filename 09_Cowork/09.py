@@ -324,29 +324,35 @@ def dibujar_bracket(ax, st):
     draw_box(ax, X_FIN_DER, y_fin, st["wb"][3][1],
              "rojo" if st["wb"][3][1] else "final_w")
 
-    # Etiqueta "★ GRAN FINAL ★" encima del centro
-    ax.text(cx, y_fin + BOX_H * 1.35 / 2 + 0.55,
+    # Etiqueta "★ GRAN FINAL ★" encima de los finalistas
+    ax.text(cx, y_fin + BOX_H / 2 + 0.55,
             "★  GRAN FINAL  ★", ha="center", va="bottom",
             fontsize=FS - 2, fontweight="bold", color="#ffd700",
             bbox=dict(boxstyle="round,pad=0.30", fc="#1a1000",
                       ec="#b8860b", lw=1.5, alpha=0.95),
             zorder=6)
 
-    # Caja campeón en el centro
+    # Caja campeón DEBAJO de los finalistas
     champ_w = BOX_W * 1.1
-    draw_box_champ(ax, cx, y_fin, st["wb"][4][0],
+    y_champ = y_fin - 2.0
+    draw_box_champ(ax, cx, y_champ, st["wb"][4][0],
                    w=champ_w, h=BOX_H * 1.35, fontsize=FS + 2)
 
-    # Conectores directos: finalistas → caja campeón (líneas horizontales)
-    draw_line(ax, X_FIN_IZQ + BOX_W / 2, y_fin, cx - champ_w / 2, y_fin, lw=1.5)
-    draw_line(ax, X_FIN_DER - BOX_W / 2, y_fin, cx + champ_w / 2, y_fin, lw=1.5)
+    # Conector descendente: bracket desde cada finalista hacia abajo al campeón
+    y_bot_fin   = y_fin   - BOX_H / 2
+    y_top_champ = y_champ + BOX_H * 1.35 / 2
+    y_mid_conn  = (y_bot_fin + y_top_champ) / 2
+    draw_line(ax, X_FIN_IZQ, y_bot_fin,  X_FIN_IZQ, y_mid_conn)
+    draw_line(ax, X_FIN_DER, y_bot_fin,  X_FIN_DER, y_mid_conn)
+    draw_line(ax, X_FIN_IZQ, y_mid_conn, X_FIN_DER, y_mid_conn)
+    draw_line(ax, cx,        y_mid_conn, cx,         y_top_champ)
 
-    # Texto "CAMPEON!" y estrellas debajo
+    # Texto "CAMPEON!" y estrellas debajo del campeón
     if st["wb"][4][0]:
-        ax.text(cx, y_fin - BOX_H * 1.35 / 2 - 0.28,
+        ax.text(cx, y_champ - BOX_H * 1.35 / 2 - 0.28,
                 "CAMPEON!", ha="center", va="top",
                 fontsize=FS - 2, fontweight="bold", color="#ffd700", zorder=6)
-        ax.text(cx, y_fin - BOX_H * 1.35 / 2 - 0.90,
+        ax.text(cx, y_champ - BOX_H * 1.35 / 2 - 0.90,
                 "★  ★  ★", ha="center", va="top",
                 fontsize=FS - 4, color="#b8860b", zorder=6)
 
