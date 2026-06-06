@@ -419,7 +419,7 @@ def dibujar_panel_inferior(ax, st):
     _X_RANGE_BOT = (XLIM_BOT[1] - XLIM_BOT[0])   # 36
     _Y_RANGE_BOT = (YLIM_BOT[1] - YLIM_BOT[0])   # 12
     _RATIO_TOP   = 2.1
-    _RATIO_BOT   = 1.0
+    _RATIO_BOT   = 1.3
     BOT_W = BOX_W * (_X_RANGE_BOT / _X_RANGE_TOP)
     BOT_H = BOX_H * (_Y_RANGE_BOT / _Y_RANGE_TOP) * (_RATIO_TOP / _RATIO_BOT)
     BOT_H1 = BOT_H / 2 - 0.04   # alto de cada sub-fila escalada
@@ -458,38 +458,112 @@ def dibujar_panel_inferior(ax, st):
                 fontsize=FS - 2, fontweight="bold", color="#cd7f32")
 
     # =================================================================
-    #  SECCIÓN 2 — PODIO  (centro x = 27)
+    #  SECCIÓN 2 — PODIO  (lado derecho, xlim 18..36)
+    #  Disposición real de podio:
+    #    PLATA(izq)  ORO(centro-alto)  BRONCE(der)
+    #                   4TO (abajo)
     # =================================================================
-    XP  = 27.0
-    ROW = 1.70   # separación entre filas del podio (mayor por bloques dobles)
 
-    ax.text(XP, Y_HEAD, "PODIO", ha="center", va="center",
+    # Centro de la sección podio y parámetros de layout
+    SEC_CX   = 27.0          # centro horizontal de la sección (18..36)
+    SEC_TOP  = Y_HEAD        # Y del título
+
+    # Título PODIO
+    ax.text(SEC_CX, SEC_TOP, "PODIO", ha="center", va="center",
             fontsize=FS, fontweight="bold", color="#ffffff")
-    ax.plot([20.5, 33.5], [Y_HEAD - 0.52, Y_HEAD - 0.52],
+    ax.plot([19.0, 35.0], [SEC_TOP - 0.52, SEC_TOP - 0.52],
             color=C["sep"], lw=1.2, zorder=1)
 
-    podio = [
-        (1, "Oro",    st["wb"][3][0],   "champ",  "#ffd700"),
-        (2, "Plata",  _subcampeon(st),  "silver", "#d0d0d0"),
-        (3, "Bronce", st["tercero"],    "bronze", "#cd7f32"),
-        (4, "4to",    st["cuarto"],     "empty",  "#5a5a7a"),
-    ]
+    # Datos de cada posición
+    podio_data = {
+        1: (st["wb"][3][0],  "champ",  "#ffd700"),
+        2: (_subcampeon(st), "silver", "#d0d0d0"),
+        3: (st["tercero"],   "bronze", "#cd7f32"),
+        4: (st["cuarto"],    "empty",  "#5a5a7a"),
+    }
 
-    for pos, lbl, equipo, estilo, color_lbl in podio:
-        yp = 8.4 - (pos - 1) * ROW
+    # Escalado de caja para el podio — ligeramente más pequeño que BOT
+    PW   = BOT_W * 0.88
+    PH   = BOT_H * 0.88
+    PH1  = PH / 2 - 0.04
+    PFS  = FS - 2
 
-        if pos <= 3:
-            draw_medal(ax, XP - 3.5, yp, pos, r=0.39)
-        else:
-            ax.text(XP - 3.5, yp, "4to", ha="center", va="center",
-                    fontsize=FS, fontweight="bold", color=color_lbl, zorder=5)
+    # Separación horizontal entre columnas del podio (Plata | Oro | Bronce)
+    H_SEP  = PW + 1.1          # distancia entre centros horizontales
+    # Separación vertical entre fila superior e inferior del podio
+    V_SEP  = PH + 2.0
 
-        ax.text(XP - 2.0, yp + 0.12, lbl, ha="left", va="center",
-                fontsize=FS, fontweight="bold", color=color_lbl)
+    # Posiciones X de las tres columnas superiores
+    X_GOLD   = SEC_CX
+    X_SILVER = SEC_CX - H_SEP
+    X_BRONZE = SEC_CX + H_SEP
 
-        draw_box_duo(ax, XP + 3.5, yp, equipo,
-                     estilo if equipo else "empty",
-                     w=BOT_W, h=BOT_H, h1=BOT_H1, fontsize=FS, z=3)
+    # Escalones del podio: Oro más arriba, Plata intermedio, Bronce más bajo
+    Y_ROW_TOP = SEC_TOP - 2.4   # fila Oro
+    Y_ROW_MID = Y_ROW_TOP - 0.55  # fila Plata/Bronce (medio paso abajo)
+    Y_ROW_BOT = Y_ROW_TOP - V_SEP  # fila 4to lugar
+
+    # Radio de medalla escalado
+    MR = 0.38
+
+    # ── Plataformas del podio (rectángulos tipo escalón) ──────────────────
+    # Plata  (altura 1)
+    plat_w = PW + 0.5
+    ax.add_patch(FancyBboxPatch(
+        (X_SILVER - plat_w/2, Y_ROW_MID - PH/2 - 0.55),
+        plat_w, 0.42,
+        boxstyle="round,pad=0.04,rounding_size=0.08",
+        fc="#2a2a2a", ec="#606060", lw=1.2, alpha=0.85, zorder=2
+    ))
+    # Bronce (altura 1)
+    ax.add_patch(FancyBboxPatch(
+        (X_BRONZE - plat_w/2, Y_ROW_MID - PH/2 - 0.70),
+        plat_w, 0.57,
+        boxstyle="round,pad=0.04,rounding_size=0.08",
+        fc="#2a1a0a", ec="#7a4500", lw=1.2, alpha=0.85, zorder=2
+    ))
+    # Oro (plataforma más alta)
+    ax.add_patch(FancyBboxPatch(
+        (X_GOLD - plat_w/2, Y_ROW_TOP - PH/2 - 0.90),
+        plat_w, 0.78,
+        boxstyle="round,pad=0.04,rounding_size=0.08",
+        fc="#2b2000", ec="#b8860b", lw=1.4, alpha=0.90, zorder=2
+    ))
+
+    # ── ORO (centro, más alto) ────────────────────────────────────────────
+    eq1, st1, col1 = podio_data[1]
+    # Brillo de medalla grande para el oro
+    draw_medal(ax, X_GOLD, Y_ROW_TOP + PH/2 + MR + 0.18, 1, r=MR + 0.06)
+    draw_box_duo(ax, X_GOLD, Y_ROW_TOP, eq1,
+                 st1 if eq1 else "empty",
+                 w=PW * 1.10, h=PH * 1.10, h1=PH1 * 1.10, fontsize=PFS + 1, z=4)
+    # Estrellas decorativas
+    ax.text(X_GOLD, Y_ROW_TOP - PH*1.10/2 - 0.28, "★  ★  ★",
+            ha="center", va="top",
+            fontsize=PFS - 5, color="#b8860b", zorder=5)
+
+    # ── PLATA (izquierda, medio) ──────────────────────────────────────────
+    eq2, st2, col2 = podio_data[2]
+    draw_medal(ax, X_SILVER, Y_ROW_MID + PH/2 + MR + 0.12, 2, r=MR)
+    draw_box_duo(ax, X_SILVER, Y_ROW_MID, eq2,
+                 st2 if eq2 else "empty",
+                 w=PW, h=PH, h1=PH1, fontsize=PFS, z=3)
+
+    # ── BRONCE (derecha, más bajo) ────────────────────────────────────────
+    eq3, st3, col3 = podio_data[3]
+    draw_medal(ax, X_BRONZE, Y_ROW_MID - 0.12 + PH/2 + MR + 0.12, 3, r=MR)
+    draw_box_duo(ax, X_BRONZE, Y_ROW_MID - 0.12, eq3,
+                 st3 if eq3 else "empty",
+                 w=PW, h=PH, h1=PH1, fontsize=PFS, z=3)
+
+    # ── 4TO LUGAR (abajo, centrado) ───────────────────────────────────────
+    eq4, st4, col4 = podio_data[4]
+    draw_box_duo(ax, SEC_CX, Y_ROW_BOT, eq4,
+                 st4 if eq4 else "empty",
+                 w=PW * 0.90, h=PH * 0.90, h1=PH1 * 0.90, fontsize=PFS - 1, z=3)
+    ax.text(SEC_CX, Y_ROW_BOT - PH*0.90/2 - 0.18, "4\u00b0 LUGAR",
+            ha="center", va="top",
+            fontsize=PFS - 2, fontweight="bold", color=col4, zorder=5)
 
 
 # =====================================================================
@@ -500,7 +574,7 @@ def render(st, banner=None, ruta=None, dpi=130):
     fig = plt.figure(figsize=(34, 20), facecolor=C["bg"])
     gs  = fig.add_gridspec(
         2, 1,
-        height_ratios=[2.1, 1.0],
+        height_ratios=[2.1, 1.3],
         hspace=0.03,
         top=0.93, bottom=0.02,
         left=0.01, right=0.99,
