@@ -488,81 +488,74 @@ def dibujar_panel_inferior(ax, st):
     PH1  = PH / 2 - 0.04
     PFS  = FS - 2
 
-    # Separación horizontal entre columnas del podio (Plata | Oro | Bronce)
-    H_SEP  = PW + 1.1          # distancia entre centros horizontales
-    # Separación vertical entre fila superior e inferior del podio
-    V_SEP  = PH + 2.0
-
-    # Posiciones X de las tres columnas superiores
+    # ── Posiciones X ─────────────────────────────────────────────────────
+    H_SEP    = PW + 1.1
     X_GOLD   = SEC_CX
     X_SILVER = SEC_CX - H_SEP
     X_BRONZE = SEC_CX + H_SEP
 
-    # Escalones del podio: Oro más arriba, Plata intermedio, Bronce más bajo
-    Y_ROW_TOP = SEC_TOP - 2.4   # fila Oro
-    Y_ROW_MID = Y_ROW_TOP - 0.55  # fila Plata/Bronce (medio paso abajo)
-    Y_ROW_BOT = Y_ROW_TOP - V_SEP  # fila 4to lugar
+    # ── Posiciones Y — ancla en Y_GOLD, todo derivado ────────────────────
+    MR       = 0.38
+    Y_GOLD   = SEC_TOP - 2.8
+    Y_SILVER = Y_GOLD - 1.20
+    Y_BRONZE = Y_GOLD - 1.35
+    Y_4TH    = Y_GOLD - 3.50
 
-    # Radio de medalla escalado
-    MR = 0.38
-
-    # ── Plataformas del podio (rectángulos tipo escalón) ──────────────────
-    # Plata  (altura 1)
-    PLAT_OFFSET = 0.55
     plat_w = PW + 0.5
+
+    # ── Plataformas (escalones decorativos) ───────────────────────────────
+    # Plata
     ax.add_patch(FancyBboxPatch(
-        (X_SILVER - plat_w/2, Y_ROW_MID - PH/2 - 0.55 - PLAT_OFFSET),
-        plat_w, 0.42,
+        (X_SILVER - plat_w/2, Y_SILVER - PH/2 - 0.48),
+        plat_w, 0.38,
         boxstyle="round,pad=0.04,rounding_size=0.08",
         fc="#2a2a2a", ec="#606060", lw=1.2, alpha=0.85, zorder=2
     ))
-    # Bronce (altura 1)
+    # Bronce
     ax.add_patch(FancyBboxPatch(
-        (X_BRONZE - plat_w/2, Y_ROW_MID - PH/2 - 0.70 - PLAT_OFFSET),
-        plat_w, 0.57,
+        (X_BRONZE - plat_w/2, Y_BRONZE - PH/2 - 0.62),
+        plat_w, 0.52,
         boxstyle="round,pad=0.04,rounding_size=0.08",
         fc="#2a1a0a", ec="#7a4500", lw=1.2, alpha=0.85, zorder=2
     ))
-    # Oro (plataforma más alta)
+    # Oro
     ax.add_patch(FancyBboxPatch(
-        (X_GOLD - plat_w/2, Y_ROW_TOP - PH/2 - 0.90 - PLAT_OFFSET),
-        plat_w, 0.78,
+        (X_GOLD - plat_w/2, Y_GOLD - PH*1.10/2 - 0.82),
+        plat_w, 0.70,
         boxstyle="round,pad=0.04,rounding_size=0.08",
         fc="#2b2000", ec="#b8860b", lw=1.4, alpha=0.90, zorder=2
     ))
 
-    # ── ORO (centro, más alto) ────────────────────────────────────────────
+    # ── ORO ───────────────────────────────────────────────────────────────
     eq1, st1, col1 = podio_data[1]
-    # Brillo de medalla grande para el oro
-    draw_medal(ax, X_GOLD, Y_ROW_TOP + PH/2 + MR + 0.18, 1, r=MR + 0.06)
-    draw_box_duo(ax, X_GOLD, Y_ROW_TOP, eq1,
+    draw_medal(ax, X_GOLD, Y_GOLD + PH*1.10/2 + MR + 0.18, 1, r=MR + 0.06)
+    draw_box_duo(ax, X_GOLD, Y_GOLD, eq1,
                  st1 if eq1 else "empty",
                  w=PW * 1.10, h=PH * 1.10, h1=PH1 * 1.10, fontsize=PFS + 1, z=4)
-    # Estrellas decorativas
-    ax.text(X_GOLD, Y_ROW_TOP - PH*1.10/2 - 0.28, "★  ★  ★",
+    ax.text(X_GOLD, Y_GOLD - PH*1.10/2 - 0.26, "★  ★  ★",
             ha="center", va="top",
             fontsize=PFS - 5, color="#b8860b", zorder=5)
 
-    # ── PLATA (izquierda, medio) ──────────────────────────────────────────
+    # ── PLATA ─────────────────────────────────────────────────────────────
     eq2, st2, col2 = podio_data[2]
-    draw_medal(ax, X_SILVER, Y_ROW_MID + PH/2 + MR + 0.12, 2, r=MR)
-    draw_box_duo(ax, X_SILVER, Y_ROW_MID - PLAT_OFFSET, eq2,
+    draw_medal(ax, X_SILVER, Y_SILVER + PH/2 + MR + 0.12, 2, r=MR)
+    draw_box_duo(ax, X_SILVER, Y_SILVER, eq2,
                  st2 if eq2 else "empty",
                  w=PW, h=PH, h1=PH1, fontsize=PFS, z=3)
 
-    # ── BRONCE (derecha, más bajo) ────────────────────────────────────────
+    # ── BRONCE ────────────────────────────────────────────────────────────
     eq3, st3, col3 = podio_data[3]
-    draw_medal(ax, X_BRONZE, Y_ROW_MID - 0.12 + PH/2 + MR + 0.12, 3, r=MR)
-    draw_box_duo(ax, X_BRONZE, Y_ROW_MID - 0.12 - PLAT_OFFSET, eq3,
+    draw_medal(ax, X_BRONZE, Y_BRONZE + PH/2 + MR + 0.12, 3, r=MR)
+    draw_box_duo(ax, X_BRONZE, Y_BRONZE, eq3,
                  st3 if eq3 else "empty",
                  w=PW, h=PH, h1=PH1, fontsize=PFS, z=3)
 
-    # ── 4TO LUGAR (abajo, centrado) ───────────────────────────────────────
+    # ── 4TO LUGAR ─────────────────────────────────────────────────────────
     eq4, st4, col4 = podio_data[4]
-    draw_box_duo(ax, SEC_CX, Y_ROW_BOT, eq4,
+    draw_box_duo(ax, SEC_CX, Y_4TH, eq4,
                  st4 if eq4 else "empty",
                  w=PW * 0.90, h=PH * 0.90, h1=PH1 * 0.90, fontsize=PFS - 1, z=3)
-    ax.text(SEC_CX, Y_ROW_BOT - PH*0.90/2 - 0.18, "4\u00b0 LUGAR",
+    ax.text(SEC_CX, Y_4TH - PH*0.90/2 - 0.18, "4° LUGAR",
             ha="center", va="top",
             fontsize=PFS - 2, fontweight="bold", color=col4, zorder=5)
 
