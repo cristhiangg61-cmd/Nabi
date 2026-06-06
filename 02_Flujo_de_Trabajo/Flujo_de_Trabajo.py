@@ -265,7 +265,7 @@ def dibujar_bracket(ax, st):
 
     # RONDA 2: FINAL
     for i in range(2):
-        y = _get_y(2, i, cuartos_ys)
+        y = _get_y(1, i, cuartos_ys)  # Los finalistas son los semifinalistas
         nombre = st["wb"][2][i]
         estilo = "final_w"
         draw_box(ax, XS_IZQ[2] if i == 0 else XS_DER[2],
@@ -273,32 +273,30 @@ def dibujar_bracket(ax, st):
 
     # RONDA 3: CAMPEON
     nombre = st["wb"][3][0]
-    y_champ = _get_y(3, 0, cuartos_ys)
+    y_champ = _get_y(1, 0, cuartos_ys)  # Promedio de los dos finalistas
     draw_box_champ(ax, 0.0, y_champ, nombre, fontsize=FS)
 
     # CONECTORES entre rondas
-    for ronda in range(3):
-        xs_src = XS_IZQ if ronda < 3 else [XS_IZQ[ronda], XS_DER[ronda]]
-        xs_dst = XS_IZQ if ronda < 2 else [XS_IZQ[ronda + 1], XS_DER[ronda + 1]]
-
-        for i in range(2 ** (2 - ronda)):
+    for ronda in range(2):  # Solo conectores entre cuartos→semifinal y semifinal→final
+        for i in range(2 ** (1 - ronda)):
             y_top = _get_y(ronda, 2*i,     cuartos_ys)
             y_bot = _get_y(ronda, 2*i + 1, cuartos_ys)
             y_mid = _get_y(ronda + 1, i,   cuartos_ys)
 
             if ronda == 0:
                 x_src = XS_IZQ[0] if i < 2 else XS_DER[0]
-            elif ronda == 1:
+                x_dst = XS_IZQ[1] if i < 2 else XS_DER[1]
+            else:  # ronda == 1
                 x_src = XS_IZQ[1] if i == 0 else XS_DER[1]
-            else:
-                x_src = XS_IZQ[2] if i == 0 else XS_DER[2]
-
-            if ronda < 2:
-                x_dst = XS_IZQ[ronda + 1] if (ronda == 0 and i < 2) or (ronda == 1 and i == 0) else XS_DER[ronda + 1]
-            else:
-                x_dst = 0.0
+                x_dst = 0.0  # Centro para el campeón
 
             draw_bracket_connector(ax, x_src, y_top, y_bot, x_dst, y_mid)
+
+    # CONECTOR FINAL → CAMPEON (solo la línea vertical)
+    y_final_top = _get_y(1, 0, cuartos_ys)
+    y_final_bot = _get_y(1, 1, cuartos_ys)
+    y_champ_pos = _get_y(1, 0, cuartos_ys)
+    draw_bracket_connector(ax, XS_IZQ[2], y_final_top, y_final_bot, 0.0, y_champ_pos)
 
     # Configurar límites y aspecto
     ax.set_xlim(*XLIM_TOP)
