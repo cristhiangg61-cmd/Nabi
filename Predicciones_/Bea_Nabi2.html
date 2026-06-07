@@ -416,9 +416,8 @@
         // FIX #3 y #8: totalH calculado correctamente; yOut usado para la línea de salida.
         // Conecta `count` bloques de entrada (en pares) hacia count/2 bloques de salida.
         function Connector({ count, fromGap, toGap, isLeft, width = 32 }) {
-            const pairCount = count / 2;
-            // Altura total: pairCount pares de entrada, separados por toGap entre pares
-            // Cada par mide 2*qH + fromGap; entre pares hay toGap - fromGap - 2*qH (espacio extra)
+            const pairCount  = count / 2;
+            const pairH      = 2 * qH + fromGap;  // alto de un par de bloques de entrada
             // totalH = count * qH + (count/2 - 1) * toGap + (count/2) * fromGap
             const totalHCalc = count * qH + (pairCount - 1) * toGap + pairCount * fromGap;
 
