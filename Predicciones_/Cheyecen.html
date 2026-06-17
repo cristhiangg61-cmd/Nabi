@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torneo 2v2 - Bracket Centrado</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; 
+            background: #090914; /* Fondo oscuro estilo e-sports */
+            color: #fff;
+            overflow-x: hidden;
+        }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+        
+        /* Efectos hover para interactividad */
+        .match-group {
+            border-radius: 10px;
+            padding: 4px;
+            transition: all 0.2s ease;
+            outline: 2px solid transparent;
+        }
+        .match-group.clickable:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: scale(1.02);
+            cursor: pointer;
+        }
+        
+        /* Scroll customizado para pantallas pequeñas */
+        .scroll-container::-webkit-scrollbar { height: 8px; }
+        .scroll-container::-webkit-scrollbar-track { background: #0d0d1e; }
+        .scroll-container::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script type="text/babel">
+        const { useState } = React;
+
+        const EQUIPOS_DEFAULT = [
+          ["Cheyecen", "Nando"], ["Gamita", "Bea"],
+          ["LuisaRK", "ChristianGG"], ["MRV", "WB"],
+          ["Wizard BS", "."], ["Aron", "Thorlo02"],
+          ["Dxni", "Boxer WS"], ["Josmar.png", "Nuñi"],
+        ];
+
+        // Constantes Geométricas para un centrado ABSOLUTO
+        const H_APP = 520;           // Altura total del contenedor principal del bracket
+        const Y_Q1 = H_APP * 0.25;   // Centro Y del primer partido (25%) = 130px
+        const Y_Q2 = H_APP * 0.75;   // Centro Y del segundo partido (75%) = 390px
+        const Y_S  = H_APP * 0.50;   // Centro Y de semifinales y final (50%) = 260px
+        const W_COL = 180;           // Ancho de las columnas de equipos
+        const W_CONN = 40;           // Ancho del espacio de los conectores (líneas)
+
+        // Tarjeta individual de un Equipo (contiene a los 2 jugadores)
+        function TeamBox({ eq, colorType }) {
+            const isBlue = colorType === "left";
+            const isPink = colorType === "right";
+            const isGold = colorType === "final";
+            
+            const color = isBlue ? "#2d6fdd" : isPink ? "#e83a74" : isGold ? "#ffd700" : "#2a2a40";
+            const bgHover = eq ? `${color}15` : "#131326";
+            
+            return (
+                <div style={{
+                    border: `1px solid ${eq ? color : '#2a2a40'}`,
+                    borderRadius: 6,
+                    background: bgHover,
+                    display: 'flex', flexDirection: 'column',
+                    padding: '8px', gap: 6,
+                    width: '100%', height: 60,
+                    boxShadow: eq ? `0 0 10px ${color}10` : 'none'
+                }}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                        <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#252538', color: '#8a8aa8', fontSize: 9, fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>1</div>
+                        <div style={{ color: eq ? '#fff' : '#4a4a6a', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eq ? eq[0] : ""}</div>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                        <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#252538', color: '#8a8aa8', fontSize: 9, fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>2</div>
+                        <div style={{ color: eq ? '#fff' : '#4a4a6a', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eq ? eq[1] : ""}</div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Bloque que agrupa 2 equipos enfrentados
+        function MatchBlock({ eq1, eq2, side, onClick, active }) {
+            return (
+                <div 
+                    className={`match-group ${active ? 'clickable' : ''}`} 
+                    onClick={active ? onClick : undefined}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 6, width: W_COL }}
+                >
+                    <TeamBox eq={eq1} colorType={side} />
+                    <TeamBox eq={eq2} colorType={side} />
+                </div>
+            );
+        }
+
+        function MatchModal({ eq1, eq2, onChoose, onClose }) {
+          return (
+            <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={onClose}>
+              <div style={{ background: "#111122", border: `1px solid #2d6fdd`, borderRadius: 12, padding: "30px", minWidth: 320, textAlign: "center", boxShadow: '0 10px 40px #000000' }} onClick={e => e.stopPropagation()}>
+                <div style={{ color: "#ffd700", fontSize: 13, fontWeight: 700, letterSpacing: 2, marginBottom: 20, textTransform: "uppercase" }}>¿Quién avanza?</div>
+                <div style={{ display: "flex", gap: 16, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+                  <button onClick={() => onChoose(eq1, eq2)} style={{ background: "#2d6fdd22", border: `1px solid #2d6fdd`, borderRadius: 8, padding: "12px", cursor: "pointer", minWidth: 140 }}>
+                    <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{eq1[0]}</div>
+                    <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{eq1[1]}</div>
+                    <div style={{ color: "#50e87a", fontSize: 11, fontWeight: 700 }}>✓ Ganador</div>
+                  </button>
+                  <div style={{ color: "#444466", fontSize: 14, fontWeight: 700 }}>VS</div>
+                  <button onClick={() => onChoose(eq2, eq1)} style={{ background: "#e83a7422", border: `1px solid #e83a74`, borderRadius: 8, padding: "12px", cursor: "pointer", minWidth: 140 }}>
+                    <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{eq2[0]}</div>
+                    <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{eq2[1]}</div>
+                    <div style={{ color: "#50e87a", fontSize: 11, fontWeight: 700 }}>✓ Ganador</div>
+                  </button>
+                </div>
+                <button onClick={onClose} style={{ marginTop: 24, background: "transparent", border: "none", color: "#666688", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
+              </div>
+            </div>
+          );
+        }
+
+        function Torneo2v2() {
+            const [st, setSt] = useState({
+                wb: [
+                  EQUIPOS_DEFAULT.map(e => [...e]),
+                  [null,null,null,null],
+                  [null,null],
+                  [null],
+                ],
+                losers: [null, null], // Para el tercer puesto
+                tercero: null,
+            });
+            const [history, setHistory] = useState([]);
+            const [modal, setModal] = useState(null);
+
+            function handleMatchClick(e1, e2, r_win, idx_win, r_lose, idx_lose) {
+                if(e1 && e2) setModal({ e1, e2, r_win, idx_win, r_lose, idx_lose });
+            }
+
+            function handleChoose(winner, loser) {
+                setHistory(h => [...h, st]);
+                const ns = JSON.parse(JSON.stringify(st));
+                
+                // Avanzar al ganador
+                ns.wb[modal.r_win][modal.idx_win] = winner;
+                
+                // Si es semifinal, registrar al perdedor para el 3er puesto
+                if(modal.r_lose !== undefined) {
+                    ns.losers[modal.idx_lose] = loser;
+                }
+                // Si es partido de 3er puesto (modo especial)
+                if(modal.isThirdPlace) {
+                    ns.tercero = winner;
+                }
+                
+                setSt(ns);
+                setModal(null);
+            }
+
+            const undo = () => {
+                if(history.length > 0) {
+                    setSt(history[history.length - 1]);
+                    setHistory(h => h.slice(0, -1));
+                }
+            };
+
+            const headerStyle = { textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#3a3a5a', letterSpacing: 2, marginBottom: 20 };
+            const lineStyle = '#2a2a4a'; // Color de las líneas conectoras
+
+            return (
+                <div style={{ padding: "40px 20px" }}>
+                    {/* ENCABEZADO */}
+                    <div style={{ textAlign: "center", marginBottom: 40 }}>
+                        <div style={{ color: "#fff", fontSize: 22, fontWeight: 700, letterSpacing: 1.5, marginBottom: 8 }}>
+                            TORNEO 2 VS 2 — ELIMINACIÓN DIRECTA
+                        </div>
+                        <div style={{ color: "#6a6a8a", fontSize: 13 }}>Haz clic en los equipos para avanzar a la siguiente ronda</div>
+                        <button onClick={undo} disabled={history.length === 0} style={{ marginTop: 16, background: "#151525", border: "1px solid #2a2a4a", color: history.length === 0 ? "#333" : "#8a8aa8", padding: "6px 16px", borderRadius: 6, cursor: history.length === 0 ? "default" : "pointer" }}>
+                            ↩ Deshacer último resultado
+                        </button>
+                    </div>
+
+                    {modal && <MatchModal eq1={modal.e1} eq2={modal.e2} onChoose={handleChoose} onClose={() => setModal(null)} />}
+
+                    {/* CONTENEDOR DEL BRACKET */}
+                    <div className="scroll-container" style={{ width: "100%", overflowX: "auto", display: "flex", justifyContent: "center", paddingBottom: 40 }}>
+                        
+                        <div style={{ display: 'flex', minWidth: 1080, height: H_APP }}>
+                            
+                            {/* COL 1: Cuartos Izquierda */}
+                            <div style={{ width: W_COL, display: 'flex', flexDirection: 'column' }}>
+                                <div style={headerStyle}>CUARTOS</div>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-around' }}>
+                                    <MatchBlock eq1={st.wb[0][0]} eq2={st.wb[0][1]} side="left" active={st.wb[0][0] && st.wb[0][1]} onClick={() => handleMatchClick(st.wb[0][0], st.wb[0][1], 1, 0)} />
+                                    <MatchBlock eq1={st.wb[0][2]} eq2={st.wb[0][3]} side="left" active={st.wb[0][2] && st.wb[0][3]} onClick={() => handleMatchClick(st.wb[0][2], st.wb[0][3], 1, 1)} />
+                                </div>
+                            </div>
+
+                            {/* CONECTORES: Cuartos L -> Semi L */}
+                            <div style={{ width: W_CONN, position: 'relative', marginTop: 35 }}>
+                                {/* Corchete vertical L */}
+                                <div style={{ position: 'absolute', left: 0, top: Y_Q1, width: W_CONN/2, height: Y_Q2 - Y_Q1, border: `2px solid ${lineStyle}`, borderLeft: 'none', borderRadius: '0 6px 6px 0', boxSizing: 'border-box' }} />
+                                {/* Línea hacia Semi L */}
+                                <div style={{ position: 'absolute', left: W_CONN/2, top: Y_S, width: W_CONN/2, height: 2, background: lineStyle }} />
+                            </div>
+
+                            {/* COL 2: Semifinal Izquierda */}
+                            <div style={{ width: W_COL, display: 'flex', flexDirection: 'column' }}>
+                                <div style={headerStyle}>SEMIFINAL</div>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <MatchBlock eq1={st.wb[1][0]} eq2={st.wb[1][1]} side="left" active={st.wb[1][0] && st.wb[1][1]} onClick={() => handleMatchClick(st.wb[1][0], st.wb[1][1], 2, 0, 'loser', 0)} />
+                                </div>
+                            </div>
+
+                            {/* CONECTORES: Semi L -> Final */}
+                            <div style={{ width: W_CONN, position: 'relative', marginTop: 35 }}>
+                                <div style={{ position: 'absolute', left: 0, top: Y_S, width: W_CONN, height: 2, background: lineStyle }} />
+                            </div>
+
+                            {/* COL 3: ZONA CENTRAL (FINAL Y CAMPEÓN) */}
+                            <div style={{ width: 220, position: 'relative', marginTop: 35 }}>
+                                {/* Título Central Arriba */}
+                                <div style={{ position: 'absolute', top: -35, width: '100%', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#ffd700', letterSpacing: 2 }}>GRAN FINAL</div>
+                                
+                                {/* Partido de Final */}
+                                <div style={{ position: 'absolute', top: Y_S, left: '50%', transform: 'translate(-50%, -50%)', width: W_COL }}>
+                                    <MatchBlock eq1={st.wb[2][0]} eq2={st.wb[2][1]} side="final" active={st.wb[2][0] && st.wb[2][1]} onClick={() => handleMatchClick(st.wb[2][0], st.wb[2][1], 3, 0)} />
+                                </div>
+                                
+                                {/* Bloque de Campeón */}
+                                <div style={{ position: 'absolute', top: Y_S + 130, left: '50%', transform: 'translate(-50%, 0)', width: W_COL }}>
+                                    <div style={{ textAlign: 'center', color: '#ffd700', fontSize: 11, fontWeight: 700, letterSpacing: 2, marginBottom: 8 }}>CAMPEÓN 🏆</div>
+                                    <TeamBox eq={st.wb[3][0]} colorType="final" />
+                                </div>
+                            </div>
+
+                            {/* CONECTORES: Final <- Semi R */}
+                            <div style={{ width: W_CONN, position: 'relative', marginTop: 35 }}>
+                                <div style={{ position: 'absolute', right: 0, top: Y_S, width: W_CONN, height: 2, background: lineStyle }} />
+                            </div>
+
+                            {/* COL 4: Semifinal Derecha */}
+                            <div style={{ width: W_COL, display: 'flex', flexDirection: 'column' }}>
+                                <div style={headerStyle}>SEMIFINAL</div>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <MatchBlock eq1={st.wb[1][2]} eq2={st.wb[1][3]} side="right" active={st.wb[1][2] && st.wb[1][3]} onClick={() => handleMatchClick(st.wb[1][2], st.wb[1][3], 2, 1, 'loser', 1)} />
+                                </div>
+                            </div>
+
+                            {/* CONECTORES: Semi R <- Cuartos R */}
+                            <div style={{ width: W_CONN, position: 'relative', marginTop: 35 }}>
+                                {/* Corchete vertical R */}
+                                <div style={{ position: 'absolute', right: 0, top: Y_Q1, width: W_CONN/2, height: Y_Q2 - Y_Q1, border: `2px solid ${lineStyle}`, borderRight: 'none', borderRadius: '6px 0 0 6px', boxSizing: 'border-box' }} />
+                                {/* Línea hacia Semi R */}
+                                <div style={{ position: 'absolute', right: W_CONN/2, top: Y_S, width: W_CONN/2, height: 2, background: lineStyle }} />
+                            </div>
+
+                            {/* COL 5: Cuartos Derecha */}
+                            <div style={{ width: W_COL, display: 'flex', flexDirection: 'column' }}>
+                                <div style={headerStyle}>CUARTOS</div>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-around' }}>
+                                    <MatchBlock eq1={st.wb[0][4]} eq2={st.wb[0][5]} side="right" active={st.wb[0][4] && st.wb[0][5]} onClick={() => handleMatchClick(st.wb[0][4], st.wb[0][5], 1, 2)} />
+                                    <MatchBlock eq1={st.wb[0][6]} eq2={st.wb[0][7]} side="right" active={st.wb[0][6] && st.wb[0][7]} onClick={() => handleMatchClick(st.wb[0][6], st.wb[0][7], 1, 3)} />
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* SECCIÓN OPCIONAL: 3ER PUESTO */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+                        <div style={{ width: 280, padding: 20, background: '#11111d', border: '1px solid #1a1a2e', borderRadius: 12 }}>
+                            <div style={{ textAlign: 'center', color: '#cd7f32', fontSize: 11, fontWeight: 700, letterSpacing: 2, marginBottom: 12 }}>PARTIDO POR EL 3ER PUESTO</div>
+                            <MatchBlock 
+                                eq1={st.losers[0]} 
+                                eq2={st.losers[1]} 
+                                side="left" 
+                                active={st.losers[0] && st.losers[1] && !st.tercero} 
+                                onClick={() => {
+                                    setModal({ e1: st.losers[0], e2: st.losers[1], isThirdPlace: true });
+                                }} 
+                            />
+                            {st.tercero && (
+                                <div style={{ marginTop: 16, textAlign: 'center' }}>
+                                    <div style={{ color: '#cd7f32', fontSize: 10, fontWeight: 700, marginBottom: 6 }}>GANADOR 3ER PUESTO</div>
+                                    <TeamBox eq={st.tercero} colorType="left" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<Torneo2v2 />);
+    </script>
+</body>
+</html>
