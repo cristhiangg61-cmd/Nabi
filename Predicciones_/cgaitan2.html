@@ -1,766 +1,728 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Torneo 2vs2</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; overflow-x: hidden; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Torneo 2vs2</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; overflow-x: hidden; }
 
-  .bracket-scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .bracket-inner {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0;
-    min-width: 800px;
-    padding-bottom: 8px;
-  }
+    .bracket-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .bracket-inner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0;
+      min-width: 800px;
+      padding-bottom: 8px;
+    }
 
-  .btn-ctrl {
-    background: #141435;
-    border: 1px solid #3a3a60;
-    border-radius: 7px;
-    color: #9090cc;
-    font-size: 11px;
-    padding: 5px 14px;
-    cursor: pointer;
-    font-weight: 600;
-    font-family: inherit;
-    transition: background 0.15s, color 0.15s;
-  }
-  .btn-ctrl:hover:not(:disabled) { background: #1e1e50; color: #b0b0ee; }
-  .btn-ctrl:disabled { color: #333355; cursor: default; }
+    .btn-ctrl {
+      background: #141435;
+      border: 1px solid #3a3a60;
+      border-radius: 7px;
+      color: #9090cc;
+      font-size: 11px;
+      padding: 5px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-ctrl:hover:not(:disabled) { background: #1e1e50; color: #b0b0ee; }
+    .btn-ctrl:disabled { color: #333355; cursor: default; }
 
-  .btn-modal-team {
-    border-radius: 9px;
-    padding: 12px 16px;
-    cursor: pointer;
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    min-width: 120px;
-    flex: 1 1 120px;
-    font-family: inherit;
-    transition: filter 0.15s;
-  }
-  .btn-modal-team:hover { filter: brightness(1.2); }
-</style>
+    .btn-modal-team {
+      border-radius: 9px;
+      padding: 12px 16px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      min-width: 120px;
+      flex: 1 1 120px;
+      font-family: inherit;
+      transition: filter 0.15s;
+    }
+    .btn-modal-team:hover { filter: brightness(1.2); }
+  </style>
 </head>
 <body>
-<div id="root"></div>
+  <div id="root"></div>
 
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-<script type="text/babel" data-presets="react">
-const { useState, useEffect } = React;
+    /* ───────────────────────── CONSTANTES GLOBALES ───────────────────────── */
+    const STORAGE_KEY = "torneo2vs2_estado";
 
-/* ───────────── CONSTANTES GLOBALES ───────────── */
-const STORAGE_KEY = "torneo2v2_estado";
+    const EQUIPOS_DEFAULT = [
+      ["Jugador 1", "Jugador 2"],   ["Jugador 3", "Jugador 4"],
+      ["Jugador 5", "Jugador 6"],   ["Jugador 7", "Jugador 8"],
+      ["Jugador 9", "Jugador 10"],  ["Jugador 11", "Jugador 12"],
+      ["Jugador 13", "Jugador 14"], ["Jugador 15", "Jugador 16"],
+    ];
 
-const EQUIPOS_DEFAULT = [
-  ["Jugador 1", "Jugador 2"], ["Jugador 3", "Jugador 4"],
-  ["Jugador 5", "Jugador 6"], ["Jugador 7", "Jugador 8"],
-  ["Jugador 9", "Jugador 10"], ["Jugador 11", "Jugador 12"],
-  ["Jugador 13", "Jugador 14"], ["Jugador 15", "Jugador 16"],
-];
+    const C = {
+      bg: "#080812",       panelBg: "#0d0d1e",
+      azul_bg: "#0e1f3d",  azul_bd: "#2d6fdd",  azul_tx: "#7ab8ff",
+      rojo_bg: "#3d0e0e",  rojo_bd: "#dd2d2d",  rojo_tx: "#ff7a7a",
+      win_bg: "#0e2e1a",   win_bd: "#27a050",   win_tx: "#50e87a",
+      champ_bg: "#2a1a00", champ_bd: "#cc8800", champ_tx: "#ffd700",
+      silver_bg: "#1c1c1c", silver_bd: "#909090", silver_tx: "#d0d0d0",
+      bronze_bg: "#2a1400", bronze_bd: "#a05a20", bronze_tx: "#cd7f32",
+      empty_bg: "#0d0d20", empty_bd: "#282845", empty_tx: "#3a3a60",
+      done_bg: "#111128",  done_bd: "#3a3a6a",  done_tx: "#5a5a9a",
+      line: "#2a2a5a",     header: "#b0b4e0",   title: "#e0e4ff",
+    };
 
-const C = {
-  bg: "#080812", panelBg: "#0d0d1e",
-  azul_bg: "#0e1f3d", azul_bd: "#2d6fdd", azul_tx: "#7ab8ff",
-  rojo_bg: "#3d0e0e", rojo_bd: "#dd2d2d", rojo_tx: "#ff7a7a",
-  win_bg: "#0e2e1a", win_bd: "#27a050", win_tx: "#50e87a",
-  champ_bg: "#2a1a00", champ_bd: "#cc8800", champ_tx: "#ffd700",
-  silver_bg: "#1c1c1c", silver_bd: "#909090", silver_tx: "#d0d0d0",
-  bronze_bg: "#2a1400", bronze_bd: "#a05a20", bronze_tx: "#cd7f32",
-  empty_bg: "#0d0d20", empty_bd: "#282845", empty_tx: "#3a3a60",
-  done_bg: "#111128", done_bd: "#3a3a6a", done_tx: "#5a5a9a",
-  line: "#2a2a5a", header: "#b0b4e0", title: "#e0e4ff",
-};
+    const BW = 152;
 
-const BW = 152;
+    /* ───────────────────────── HELPERS PUROS ───────────────────────── */
+    function eqName(eq)     { return eq ? `${eq[0]} & ${eq[1]}` : "???"; }
+    function eqEquals(a, b) { return (!a || !b) ? false : (a[0] === b[0] && a[1] === b[1]); }
+    function eqKey(eq)      { return eq ? `${eq[0]}|${eq[1]}` : "null"; }
 
-/* ───────────── HELPERS PUROS ───────────── */
-const eqName = (eq) => eq ? `${eq[0]} & ${eq[1]}` : "???";
-const eqEquals = (a, b) => (!a || !b) ? false : a[0] === b[0] && a[1] === b[1];
-const eqKey = (eq) => eq ? `${eq[0]}|${eq[1]}` : "null";
-
-/* ───────────── ESTADO DEL TORNEO ───────────── */
-function initState(equipos) {
-  return {
-    wb: [
-      equipos.map(e => [...e]), // ronda 0: cuartos (8 slots)
-      [null, null, null, null], // ronda 1: semifinales (4 slots)
-      [null, null],             // ronda 2: finalistas (2 slots)
-      [null],                   // ronda 3: campeón
-    ],
-    semifinal_losers: [null, null],
-    tercero: null,
-    cuarto: null,
-  };
-}
-
-/* ───────────── REMAPEO DE NOMBRES ───────────── */
-function remapState(oldEqs, newEqs, oldSt) {
-  const remap = (eq) => {
-    if (eq === null) return null;
-    let idx = -1;
-    for (let i = 0; i < oldEqs.length; i++) {
-      if (eqEquals(eq, oldEqs[i])) { idx = i; break; }
+    /* ───────────────────────── ESTADO DEL TORNEO ───────────────────────── */
+    function initState(equipos) {
+      return {
+        wb: [
+          equipos.map(e => [...e]),   // ronda 0: 8 slots (cuartos)
+          [null, null, null, null],   // ronda 1: 4 slots (semifinales)
+          [null, null],               // ronda 2: 2 slots (finalistas)
+          [null],                     // ronda 3: campeón
+        ],
+        semifinal_losers: [null, null],
+        tercero: null,
+        cuarto: null,
+      };
     }
-    if (idx === -1) return eq;
-    return [...newEqs[idx]];
-  };
-  return {
-    wb: [
-      newEqs.map(e => [...e]),
-      oldSt.wb[1].map(remap),
-      oldSt.wb[2].map(remap),
-      oldSt.wb[3].map(remap),
-    ],
-    semifinal_losers: oldSt.semifinal_losers.map(remap),
-    tercero: remap(oldSt.tercero),
-    cuarto: remap(oldSt.cuarto),
-  };
-}
 
-/* ───────────── PARTIDOS ───────────── */
-function buildPartidos() {
-  const partidos = [];
+    /* ───────────────────────── REMAPEO DE NOMBRES ───────────────────────── */
+    function remapState(oldEqs, newEqs, oldSt) {
+      function remap(eq) {
+        if (eq === null) return null;
+        let idx = -1;
+        for (let i = 0; i < oldEqs.length; i++) {
+          if (eqEquals(eq, oldEqs[i])) { idx = i; break; }
+        }
+        if (idx === -1) return eq;
+        return [...newEqs[idx]];
+      }
+      return {
+        wb: [
+          newEqs.map(e => [...e]),
+          oldSt.wb[1].map(remap),
+          oldSt.wb[2].map(remap),
+          oldSt.wb[3].map(remap),
+        ],
+        semifinal_losers: oldSt.semifinal_losers.map(remap),
+        tercero: remap(oldSt.tercero),
+        cuarto: remap(oldSt.cuarto),
+      };
+    }
 
-  // 4 cuartos
-  for (let i = 0; i < 4; i++) {
-    partidos.push({
-      etapa: "CUARTOS", label: `Cuartos ${i + 1}`, r: 0, j: i,
-      src1: [0, 2 * i], src2: [0, 2 * i + 1], dst_win: [1, i], dst_lose: null,
-    });
-  }
+    /* ───────────────────────── PARTIDOS ───────────────────────── */
+    function buildPartidos() {
+      const arr = [];
+      // 4 cuartos
+      for (let i = 0; i < 4; i++) {
+        arr.push({
+          etapa: "CUARTOS", label: `Cuartos ${i + 1}`, r: 0, j: i,
+          src1: [0, 2 * i], src2: [0, 2 * i + 1], dst_win: [1, i], dst_lose: null,
+        });
+      }
+      // 2 semifinales
+      for (let i = 0; i < 2; i++) {
+        arr.push({
+          etapa: "SEMIFINAL", label: `Semifinal ${i + 1}`, r: 1, j: i,
+          src1: [1, 2 * i], src2: [1, 2 * i + 1], dst_win: [2, i],
+          dst_lose: "semi_loser", dst_lose_idx: i,
+        });
+      }
+      // 1 tercer puesto
+      arr.push({
+        etapa: "3ER PUESTO", label: "3er Puesto", r: "3p",
+        src1: "semi_loser_0", src2: "semi_loser_1",
+        dst_win: "tercero", dst_lose: "cuarto",
+      });
+      // 1 gran final
+      arr.push({
+        etapa: "GRAN FINAL", label: "Gran Final", r: 2,
+        src1: [2, 0], src2: [2, 1], dst_win: [3, 0], dst_lose: null,
+      });
+      return arr;
+    }
+    const PARTIDOS = buildPartidos();
 
-  // 2 semifinales
-  for (let i = 0; i < 2; i++) {
-    partidos.push({
-      etapa: "SEMIFINAL", label: `Semifinal ${i + 1}`, r: 1, j: i,
-      src1: [1, 2 * i], src2: [1, 2 * i + 1], dst_win: [2, i],
-      dst_lose: "semi_loser", dst_lose_idx: i,
-    });
-  }
+    function resolveTeam(st, src) {
+      if (Array.isArray(src)) return st.wb[src[0]][src[1]];
+      if (src === "semi_loser_0") return st.semifinal_losers[0];
+      if (src === "semi_loser_1") return st.semifinal_losers[1];
+      return null;
+    }
 
-  // 1 tercer puesto
-  partidos.push({
-    etapa: "3ER PUESTO", label: "3er Puesto", r: "3p",
-    src1: "semi_loser_0", src2: "semi_loser_1",
-    dst_win: "tercero", dst_lose: "cuarto",
-  });
+    function applyResult(st, p, winner, loser) {
+      const ns = JSON.parse(JSON.stringify(st));
+      if (Array.isArray(p.dst_win)) ns.wb[p.dst_win[0]][p.dst_win[1]] = winner;
+      if (p.dst_lose === "semi_loser") ns.semifinal_losers[p.dst_lose_idx] = loser;
+      if (p.r === "3p") { ns.tercero = winner; ns.cuarto = loser; }
+      if (p.r === 2) ns.wb[3][0] = winner;
+      return ns;
+    }
 
-  // 1 gran final
-  partidos.push({
-    etapa: "GRAN FINAL", label: "Gran Final", r: 2,
-    src1: [2, 0], src2: [2, 1], dst_win: [3, 0], dst_lose: null,
-  });
+    function getSubcampeon(st) {
+      const fin = st.wb[2], champ = st.wb[3][0];
+      if (!champ || !fin[0] || !fin[1]) return null;
+      return eqEquals(champ, fin[0]) ? fin[1] : fin[0];
+    }
 
-  return partidos;
-}
-const PARTIDOS = buildPartidos();
+    /* ───────────────────────── PERSISTENCIA localStorage ───────────────────────── */
+    function saveToStorage(data) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+    }
+    function loadFromStorage() {
+      try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : null; }
+      catch (e) { return null; }
+    }
 
-function resolveTeam(st, src) {
-  if (Array.isArray(src)) return st.wb[src[0]][src[1]];
-  if (src === "semi_loser_0") return st.semifinal_losers[0];
-  if (src === "semi_loser_1") return st.semifinal_losers[1];
-  return null;
-}
+    /* ───────────────────────── COMPONENTE TeamBlock ───────────────────────── */
+    function TeamBlock({ eq, style, width = 160, compact = false, onClick, clickable = false, isDone = false }) {
+      const pad = compact ? 3 : 6;
+      const h1 = compact ? 18 : 22;
+      const total = h1 * 2 + pad * 3;
 
-function applyResult(st, p, winner, loser) {
-  const ns = JSON.parse(JSON.stringify(st));
-  if (Array.isArray(p.dst_win)) ns.wb[p.dst_win[0]][p.dst_win[1]] = winner;
-  if (p.dst_lose === "semi_loser") ns.semifinal_losers[p.dst_lose_idx] = loser;
-  if (p.r === "3p") { ns.tercero = winner; ns.cuarto = loser; }
-  if (p.r === 2) ns.wb[3][0] = winner;
-  return ns;
-}
+      let bg, bd, tx;
+      if (!eq) { bg = C.empty_bg; bd = C.empty_bd; tx = C.empty_tx; }
+      else if (isDone) { bg = C.done_bg; bd = C.done_bd; tx = C.done_tx; }
+      else if (style === "azul") { bg = C.azul_bg; bd = C.azul_bd; tx = C.azul_tx; }
+      else if (style === "rojo") { bg = C.rojo_bg; bd = C.rojo_bd; tx = C.rojo_tx; }
+      else if (style === "win") { bg = C.win_bg; bd = C.win_bd; tx = C.win_tx; }
+      else if (style === "final_w") { bg = C.azul_bg; bd = C.champ_bd; tx = C.champ_tx; }
+      else if (style === "champ") { bg = C.champ_bg; bd = C.champ_bd; tx = C.champ_tx; }
+      else if (style === "silver") { bg = C.silver_bg; bd = C.silver_bd; tx = C.silver_tx; }
+      else if (style === "bronze") { bg = C.bronze_bg; bd = C.bronze_bd; tx = C.bronze_tx; }
+      else { bg = C.empty_bg; bd = C.empty_bd; tx = C.empty_tx; }
 
-function getSubcampeon(st) {
-  const fin = st.wb[2], champ = st.wb[3][0];
-  if (!champ || !fin[0] || !fin[1]) return null;
-  return eqEquals(champ, fin[0]) ? fin[1] : fin[0];
-}
+      const numSize = compact ? 9 : 10;
+      const nameSize = compact ? 10 : 12;
 
-/* ───────────── PERSISTENCIA ───────────── */
-function saveToStorage(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
-}
-function loadFromStorage() {
-  try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; }
-}
+      const handleEnter = (e) => { if (clickable && eq) e.currentTarget.style.filter = "brightness(1.25)"; };
+      const handleLeave = (e) => { if (clickable && eq) e.currentTarget.style.filter = "none"; };
+      const handleClick = () => { if (clickable && eq && onClick) onClick(); };
 
-/* ───────────── TeamBlock ───────────── */
-function TeamBlock({ eq, style, width = 160, compact = false, onClick, clickable = false, isDone = false }) {
-  const pad = compact ? 3 : 6;
-  const h1 = compact ? 18 : 22;
-  const total = h1 * 2 + pad * 3;
-  const numSize = compact ? 9 : 10;
-  const nameSize = compact ? 10 : 12;
+      return (
+        <div
+          style={{
+            width, height: total, background: bg,
+            border: `1.5px ${eq ? "solid" : "dashed"} ${bd}`,
+            borderRadius: 8, overflow: "hidden", display: "flex", flexDirection: "column",
+            opacity: isDone ? 0.45 : (!eq ? 0.55 : 1),
+            flexShrink: 0, cursor: (clickable && eq) ? "pointer" : "default",
+            transition: "filter 0.15s", position: "relative",
+          }}
+          onMouseEnter={handleEnter}
+          onMouseLeave={handleLeave}
+          onClick={handleClick}
+        >
+          {isDone && eq && (
+            <div style={{
+              position: "absolute", inset: 0, display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 9, color: C.done_tx, fontWeight: 700,
+              letterSpacing: 1, pointerEvents: "none", zIndex: 2,
+            }}>ELIMINADO</div>
+          )}
 
-  let bg, bd, tx;
-  if (!eq) { bg = C.empty_bg; bd = C.empty_bd; tx = C.empty_tx; }
-  else if (isDone) { bg = C.done_bg; bd = C.done_bd; tx = C.done_tx; }
-  else if (style === "azul") { bg = C.azul_bg; bd = C.azul_bd; tx = C.azul_tx; }
-  else if (style === "rojo") { bg = C.rojo_bg; bd = C.rojo_bd; tx = C.rojo_tx; }
-  else if (style === "win") { bg = C.win_bg; bd = C.win_bd; tx = C.win_tx; }
-  else if (style === "final_w") { bg = C.azul_bg; bd = C.champ_bd; tx = C.champ_tx; }
-  else if (style === "champ") { bg = C.champ_bg; bd = C.champ_bd; tx = C.champ_tx; }
-  else if (style === "silver") { bg = C.silver_bg; bd = C.silver_bd; tx = C.silver_tx; }
-  else if (style === "bronze") { bg = C.bronze_bg; bd = C.bronze_bd; tx = C.bronze_tx; }
-  else { bg = C.empty_bg; bd = C.empty_bd; tx = C.empty_tx; }
+          {/* Fila 1 — jugador ① */}
+          <div style={{
+            flex: 1, display: "flex", alignItems: "center",
+            padding: `0 ${pad + 2}px 0 ${pad}px`,
+            borderBottom: `1px solid ${bd}44`,
+          }}>
+            <span style={{ color: tx, fontSize: numSize, fontWeight: 700, opacity: 0.7, flexShrink: 0, marginRight: 4 }}>①</span>
+            <span style={{
+              color: isDone ? C.done_tx : "#fff", fontSize: nameSize, fontWeight: 600,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
+            }}>{eq ? eq[0] : ""}</span>
+          </div>
 
-  const isClickable = !!(clickable && eq);
+          {/* Fila 2 — jugador ② */}
+          <div style={{
+            flex: 1, display: "flex", alignItems: "center",
+            padding: `0 ${pad + 2}px 0 ${pad}px`,
+          }}>
+            <span style={{ color: isDone ? C.done_tx : "#ffb0b0", fontSize: numSize, fontWeight: 700, opacity: 0.7, flexShrink: 0, marginRight: 4 }}>②</span>
+            <span style={{
+              color: isDone ? C.done_tx : "#fff", fontSize: nameSize, fontWeight: 600,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
+            }}>{eq ? eq[1] : ""}</span>
+          </div>
+        </div>
+      );
+    }
 
-  const rowBase = {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    padding: `0 ${pad + 2}px 0 ${pad}px`,
-  };
-  const numStyle = { fontSize: numSize, fontWeight: 700, opacity: 0.7, flexShrink: 0, marginRight: 4 };
-  const nameStyle = {
-    color: isDone ? C.done_tx : "#fff", fontSize: nameSize, fontWeight: 600,
-    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
-  };
-
-  return (
-    <div
-      style={{
-        width, height: total, background: bg,
-        border: `1.5px ${eq ? "solid" : "dashed"} ${bd}`,
-        borderRadius: 8, overflow: "hidden", display: "flex", flexDirection: "column",
-        opacity: isDone ? 0.45 : !eq ? 0.55 : 1,
-        flexShrink: 0, cursor: isClickable ? "pointer" : "default",
-        transition: "filter 0.15s", position: "relative",
-      }}
-      onMouseEnter={(e) => { if (isClickable) e.currentTarget.style.filter = "brightness(1.25)"; }}
-      onMouseLeave={(e) => { if (isClickable) e.currentTarget.style.filter = "none"; }}
-      onClick={() => { if (isClickable && onClick) onClick(); }}
-    >
-      {isDone && eq && (
+    /* ───────────────────────── COMPONENTE ChampBlock ───────────────────────── */
+    function ChampBlock({ eq, width = 200 }) {
+      return (
         <div style={{
-          position: "absolute", inset: 0, display: "flex",
-          alignItems: "center", justifyContent: "center", fontSize: 9,
-          color: C.done_tx, fontWeight: 700, letterSpacing: 1,
-          pointerEvents: "none", zIndex: 2,
-        }}>ELIMINADO</div>
-      )}
-
-      <div style={{ ...rowBase, borderBottom: `1px solid ${bd}44` }}>
-        <span style={{ ...numStyle, color: tx }}>①</span>
-        <span style={nameStyle}>{eq ? eq[0] : ""}</span>
-      </div>
-
-      <div style={rowBase}>
-        <span style={{ ...numStyle, color: isDone ? C.done_tx : "#ffb0b0" }}>②</span>
-        <span style={nameStyle}>{eq ? eq[1] : ""}</span>
-      </div>
-    </div>
-  );
-}
-
-/* ───────────── ChampBlock ───────────── */
-function ChampBlock({ eq, width = 200 }) {
-  const rowBase = { flex: 1, display: "flex", alignItems: "center", padding: "0 12px" };
-  const nameStyle = {
-    color: "#fff", fontSize: 13, fontWeight: 700,
-    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
-  };
-  return (
-    <div style={{
-      width, height: 72, background: C.champ_bg,
-      border: `2px solid ${C.champ_bd}`, borderRadius: 10,
-      boxShadow: eq ? `0 0 18px ${C.champ_bd}55` : "none",
-      display: "flex", flexDirection: "column", overflow: "hidden",
-    }}>
-      <div style={{ ...rowBase, borderBottom: `1px solid ${C.champ_bd}44` }}>
-        <span style={{ color: C.champ_tx, fontSize: 10, fontWeight: 700, marginRight: 6, flexShrink: 0 }}>①</span>
-        <span style={nameStyle}>{eq ? eq[0] : ""}</span>
-      </div>
-      <div style={rowBase}>
-        <span style={{ color: "#ffb0b0", fontSize: 10, fontWeight: 700, marginRight: 6, flexShrink: 0 }}>②</span>
-        <span style={nameStyle}>{eq ? eq[1] : ""}</span>
-      </div>
-    </div>
-  );
-}
-
-/* ───────────── ColHeader ───────────── */
-function ColHeader({ label, color = C.header }) {
-  return (
-    <div style={{
-      textAlign: "center", fontSize: 10, fontWeight: 700, color,
-      letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6,
-    }}>{label}</div>
-  );
-}
-
-/* ───────────── Medal ───────────── */
-function Medal({ pos }) {
-  const map = {
-    1: { bg: "#a07800", border: "#ffd700", text: "#ffd700", label: "ORO" },
-    2: { bg: "#505050", border: "#d0d0d0", text: "#d0d0d0", label: "PLATA" },
-    3: { bg: "#7a4500", border: "#cd7f32", text: "#cd7f32", label: "BRONCE" },
-  };
-  const m = map[pos];
-  if (!m) return null;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 40 }}>
-      <div style={{
-        width: 32, height: 32, borderRadius: "50%", background: m.bg,
-        border: `2px solid ${m.border}`, display: "flex", alignItems: "center",
-        justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 700,
-      }}>{pos}</div>
-      <div style={{ fontSize: 8, fontWeight: 700, color: m.text, marginTop: 3 }}>{m.label}</div>
-    </div>
-  );
-}
-
-/* ───────────── MatchModal ───────────── */
-function MatchModal({ eq1, eq2, label, onChoose, onClose }) {
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, background: "#000000aa",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 100, padding: 12,
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: "#13132a", border: `1.5px solid ${C.azul_bd}`, borderRadius: 14,
-          padding: "24px 20px", width: "100%", maxWidth: 380, textAlign: "center",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {label && (
-          <div style={{ color: "#5a5a8a", fontSize: 10, fontWeight: 700, letterSpacing: 2, marginBottom: 4, textTransform: "uppercase" }}>
-            {label}
+          width, height: 72, background: C.champ_bg,
+          border: `2px solid ${C.champ_bd}`, borderRadius: 10,
+          boxShadow: eq ? `0 0 18px ${C.champ_bd}55` : "none",
+          display: "flex", flexDirection: "column", overflow: "hidden",
+        }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 12px", borderBottom: `1px solid ${C.champ_bd}44` }}>
+            <span style={{ color: C.champ_tx, fontSize: 10, fontWeight: 700, opacity: 0.85, marginRight: 6, flexShrink: 0 }}>①</span>
+            <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{eq ? eq[0] : "???"}</span>
           </div>
-        )}
-        <div style={{ color: C.champ_tx, fontSize: 13, fontWeight: 700, letterSpacing: 2, marginBottom: 18, textTransform: "uppercase" }}>
-          ¿Quién avanza?
-        </div>
-
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
-          <button className="btn-modal-team" style={{ background: C.azul_bg, border: `1.5px solid ${C.azul_bd}` }} onClick={() => onChoose(eq1, eq2)}>
-            <div style={{ color: C.azul_tx, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>① {eq1[0]}</div>
-            <div style={{ color: "#fff", fontSize: 10, marginBottom: 10 }}>② {eq1[1]}</div>
-            <div style={{ color: C.win_tx, fontSize: 11, fontWeight: 700 }}>✓ Avanza</div>
-          </button>
-
-          <span style={{ color: "#444488", fontSize: 13, fontWeight: 700 }}>VS</span>
-
-          <button className="btn-modal-team" style={{ background: C.rojo_bg, border: `1.5px solid ${C.rojo_bd}` }} onClick={() => onChoose(eq2, eq1)}>
-            <div style={{ color: C.azul_tx, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>① {eq2[0]}</div>
-            <div style={{ color: "#fff", fontSize: 10, marginBottom: 10 }}>② {eq2[1]}</div>
-            <div style={{ color: C.win_tx, fontSize: 11, fontWeight: 700 }}>✓ Avanza</div>
-          </button>
-        </div>
-
-        <button style={{ marginTop: 18, background: "transparent", border: "none", color: "#555588", fontSize: 12, cursor: "pointer" }} onClick={onClose}>
-          Cancelar
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ───────────── BracketSide ───────────── */
-function BracketSide({ side, st, onMatchClick }) {
-  const isLeft = side === "left";
-  const idx0 = isLeft ? 0 : 4;
-  const sty0 = isLeft ? "azul" : "rojo";
-  const sideLabel = isLeft ? "LADO AZUL" : "LADO ROJO";
-  const sideColor = isLeft ? C.azul_bd : C.rojo_bd;
-  const qH = 52, qGap = 20, pairH = qH * 2 + qGap; // 124
-
-  const oct = st.wb[0];
-  const semi = st.wb[1];
-  const quartSlots = [0, 1, 2, 3].map(i => oct[idx0 + i]);
-  const semiSlots = [0, 1].map(i => semi[(isLeft ? 0 : 2) + i]);
-
-  const semiBase = isLeft ? 0 : 2;
-  const canQuarters = (pIdx) => oct[idx0 + 2 * pIdx] && oct[idx0 + 2 * pIdx + 1];
-  // Una sola semifinal por lado: ambos finalistas del lado abren el mismo partido.
-  const canSemiMatch = () => semi[semiBase] && semi[semiBase + 1];
-
-  return (
-    <div style={{ display: "flex", flexDirection: isLeft ? "row" : "row-reverse", alignItems: "flex-start", gap: 0 }}>
-
-      {/* ── SECCIÓN A: COLUMNA CUARTOS ── */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: sideColor, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>
-          {sideLabel}
-        </div>
-        <ColHeader label="Cuartos" color={C.header} />
-        <div style={{ display: "flex", flexDirection: "column", gap: qGap }}>
-          {quartSlots.map((eq, i) => {
-            const pIdx = Math.floor(i / 2);
-            const semiSlotIdx = (isLeft ? 0 : 2) + pIdx;
-            const semiResult = st.wb[1][semiSlotIdx];
-            const isWinner = eq && semiResult && eqEquals(eq, semiResult);
-            const isLoser = eq && semiResult && !eqEquals(eq, semiResult);
-            const sty = eq ? (isWinner ? "win" : sty0) : sty0;
-            const clickable = canQuarters(pIdx) && !semiResult;
-            return (
-              <TeamBlock key={i} eq={eq} style={sty} width={BW} compact
-                clickable={clickable} isDone={!!isLoser}
-                onClick={() => {
-                  const ai = idx0 + 2 * pIdx, bi = idx0 + 2 * pIdx + 1;
-                  onMatchClick(oct[ai], oct[bi], "CUARTOS");
-                }} />
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── SECCIÓN B: CONECTORES CUARTOS → SEMI ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center", width: 36, paddingTop: 36 }}>
-        {[0, 1].map(pIdx => (
-          <div key={pIdx} style={{ width: 36, height: 144 }}>
-            <svg width="36" height="144" style={{ overflow: "visible" }}>
-              {isLeft ? (
-                <React.Fragment>
-                  <line x1="0" y1="26" x2="18" y2="26" stroke={C.line} strokeWidth="1.5" />
-                  <line x1="0" y1="98" x2="18" y2="98" stroke={C.line} strokeWidth="1.5" />
-                  <line x1="18" y1="26" x2="18" y2="98" stroke={C.line} strokeWidth="1.5" />
-                  <line x1="18" y1="62" x2="36" y2="62" stroke={C.line} strokeWidth="1.5" />
-                </React.Fragment>
-              ) : (
-                <React.Fragment>
-                  <line x1="36" y1="26" x2="18" y2="26" stroke={C.line} strokeWidth="1.5" />
-                  <line x1="36" y1="98" x2="18" y2="98" stroke={C.line} strokeWidth="1.5" />
-                  <line x1="18" y1="26" x2="18" y2="98" stroke={C.line} strokeWidth="1.5" />
-                  <line x1="18" y1="62" x2="0" y2="62" stroke={C.line} strokeWidth="1.5" />
-                </React.Fragment>
-              )}
-            </svg>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 12px" }}>
+            <span style={{ color: "#ffb0b0", fontSize: 10, fontWeight: 700, opacity: 0.85, marginRight: 6, flexShrink: 0 }}>②</span>
+            <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{eq ? eq[1] : "???"}</span>
           </div>
-        ))}
-      </div>
-
-      {/* ── SECCIÓN C: COLUMNA SEMIFINAL ── */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 36 }}>
-        <ColHeader label="Semifinal" color={C.header} />
-        <div style={{ display: "flex", flexDirection: "column", gap: pairH + qGap - qH }}>
-          {semiSlots.map((eq, i) => {
-            const finalSlotIdx = isLeft ? 0 : 1;
-            const finalResult = st.wb[2][finalSlotIdx];
-            const isWinner = eq && finalResult && eqEquals(eq, finalResult);
-            const isLoser = eq && finalResult && !eqEquals(eq, finalResult);
-            const sty = eq ? (isWinner ? "win" : (isLeft ? "azul" : "rojo")) : (isLeft ? "azul" : "rojo");
-            const clickable = canSemiMatch() && !finalResult;
-            return (
-              <TeamBlock key={i} eq={eq} style={sty} width={BW} compact
-                clickable={clickable} isDone={!!isLoser}
-                onClick={() => onMatchClick(semi[semiBase], semi[semiBase + 1], "SEMIFINAL")} />
-            );
-          })}
         </div>
-      </div>
-
-    </div>
-  );
-}
-
-/* ───────────── COMPONENTE PRINCIPAL ───────────── */
-function Torneo2v2() {
-  const [st, setSt] = useState(() => { const s = loadFromStorage(); return s && s.st ? s.st : initState(EQUIPOS_DEFAULT); });
-  const [history, setHistory] = useState(() => { const s = loadFromStorage(); return s && s.history ? s.history : []; });
-  const [equipos, setEquipos] = useState(() => { const s = loadFromStorage(); return s && s.equipos ? s.equipos : EQUIPOS_DEFAULT; });
-  const [modal, setModal] = useState(null);
-  const [editing, setEditing] = useState(false);
-  const [editBuf, setEditBuf] = useState(EQUIPOS_DEFAULT.map(e => [...e]));
-  const [lastAction, setLastAction] = useState("Haz clic en un partido para registrar el ganador");
-
-  useEffect(() => { saveToStorage({ st, history, equipos }); }, [st, history, equipos]);
-
-  const qH = 52, qGap = 20, pairH = qH * 2 + qGap;
-
-  // Derivados
-  const sub = getSubcampeon(st);
-  const champ = st.wb[3][0];
-  const tercero = st.tercero;
-  const cuarto = st.cuarto;
-  const sl0 = st.semifinal_losers[0];
-  const sl1 = st.semifinal_losers[1];
-  const fin0 = st.wb[2][0];
-  const fin1 = st.wb[2][1];
-  const canThird = sl0 && sl1 && !tercero;
-  const canFinal = fin0 && fin1 && !champ && !!tercero;
-  const mustPlayThirdFirst = fin0 && fin1 && !champ && !tercero && sl0 && sl1;
-
-  // Handlers
-  const handleMatchClick = (e1, e2, etapaLabel) => { if (e1 && e2) setModal({ e1, e2, etapaLabel }); };
-  const handleFinalClick = () => { if (canFinal) setModal({ e1: fin0, e2: fin1, etapaLabel: "GRAN FINAL" }); };
-  const handleThirdClick = () => { if (canThird) setModal({ e1: sl0, e2: sl1, etapaLabel: "3ER PUESTO" }); };
-
-  const handleChoose = (winner, loser) => {
-    let p = null;
-    for (let k = 0; k < PARTIDOS.length; k++) {
-      const pt = PARTIDOS[k];
-      const s1 = resolveTeam(st, pt.src1);
-      const s2 = resolveTeam(st, pt.src2);
-      if ((eqEquals(s1, winner) && eqEquals(s2, loser)) || (eqEquals(s1, loser) && eqEquals(s2, winner))) { p = pt; break; }
+      );
     }
-    if (!p) { setModal(null); return; }
-    setHistory(h => [...h, st]);
-    const newSt = applyResult(st, p, winner, loser);
-    setSt(newSt);
-    setLastAction(`${p.etapa}: avanzó ${eqName(winner)}`);
-    setModal(null);
-  };
 
-  const undo = () => {
-    if (history.length === 0) return;
-    setSt(history[history.length - 1]);
-    setHistory(h => h.slice(0, -1));
-    setLastAction("Partido deshecho");
-  };
+    /* ───────────────────────── COMPONENTE ColHeader ───────────────────────── */
+    function ColHeader({ label, color = C.header }) {
+      return (
+        <div style={{
+          textAlign: "center", fontSize: 10, fontWeight: 700, color,
+          letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6,
+        }}>{label}</div>
+      );
+    }
 
-  const reset = () => {
-    if (!window.confirm("¿Reiniciar el torneo? Se perderán todos los resultados.")) return;
-    setSt(initState(equipos));
-    setHistory([]);
-    setLastAction("Torneo reiniciado");
-  };
-
-  const saveNames = () => {
-    const newEq = editBuf.map(e => [e[0].trim() || "???", e[1].trim() || "???"]);
-    const newSt = remapState(equipos, newEq, st);
-    const newHist = history.map(hSt => remapState(equipos, newEq, hSt));
-    setEquipos(newEq); setSt(newSt); setHistory(newHist);
-    setEditing(false); setLastAction("Nombres actualizados ✓");
-  };
-
-  return (
-    <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", padding: "16px 12px 32px" }}>
-
-      {/* ① TÍTULO */}
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <div style={{ color: C.title, fontSize: 18, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          TORNEO 2 VS 2 — ELIMINACIÓN DIRECTA
+    /* ───────────────────────── COMPONENTE Medal ───────────────────────── */
+    function Medal({ pos }) {
+      const map = {
+        1: { bg: "#a07800", border: "#ffd700", text: "#ffd700", label: "ORO" },
+        2: { bg: "#505050", border: "#d0d0d0", text: "#d0d0d0", label: "PLATA" },
+        3: { bg: "#7a4500", border: "#cd7f32", text: "#cd7f32", label: "BRONCE" },
+      };
+      const m = map[pos];
+      if (!m) return null;
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 40 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: "50%", background: m.bg,
+            border: `2px solid ${m.border}`, display: "flex", alignItems: "center",
+            justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 700,
+          }}>{pos}</div>
+          <div style={{ fontSize: 8, fontWeight: 700, color: m.text, marginTop: 3 }}>{m.label}</div>
         </div>
-        <div style={{ color: "#5a5a8a", fontSize: 11, marginTop: 3 }}>
-          8 equipos · Cuartos → Semifinal → Final
-        </div>
-      </div>
+      );
+    }
 
-      {/* ② BOTONES CONTROL */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-        <button className="btn-ctrl" onClick={() => { setEditBuf(equipos.map(e => [...e])); setEditing(true); }}>
-          ✎ Editar nombres
-        </button>
-        <button className="btn-ctrl" onClick={undo} disabled={history.length === 0}>
-          ↩ Deshacer
-        </button>
-        <button className="btn-ctrl" onClick={reset}>
-          ↺ Reiniciar
-        </button>
-      </div>
+    /* ───────────────────────── COMPONENTE MatchModal ───────────────────────── */
+    function MatchModal({ eq1, eq2, label, onChoose, onClose }) {
+      return (
+        <div
+          style={{
+            position: "fixed", inset: 0, background: "#000000aa",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 100, padding: 12,
+          }}
+          onClick={onClose}
+        >
+          <div
+            style={{
+              background: "#13132a", border: `1.5px solid ${C.azul_bd}`, borderRadius: 14,
+              padding: "24px 20px", width: "100%", maxWidth: 380, textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {label && (
+              <div style={{ color: "#5a5a8a", fontSize: 10, fontWeight: 700, letterSpacing: 2, marginBottom: 4, textTransform: "uppercase" }}>{label}</div>
+            )}
+            <div style={{ color: C.champ_tx, fontSize: 13, fontWeight: 700, letterSpacing: 2, marginBottom: 18, textTransform: "uppercase" }}>¿Quién avanza?</div>
 
-      {/* ③ LAST ACTION */}
-      <div style={{ textAlign: "center", color: "#7a7aaa", fontSize: 11, marginBottom: 18, fontStyle: "italic" }}>
-        {lastAction}
-      </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
+              <button className="btn-modal-team" style={{ background: C.azul_bg, border: `1.5px solid ${C.azul_bd}` }} onClick={() => onChoose(eq1, eq2)}>
+                <div style={{ color: C.azul_tx, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>① {eq1 ? eq1[0] : ""}</div>
+                <div style={{ color: "#fff", fontSize: 10, marginBottom: 10 }}>② {eq1 ? eq1[1] : ""}</div>
+                <div style={{ color: C.win_tx, fontSize: 11, fontWeight: 700 }}>✓ Avanza</div>
+              </button>
 
-      {/* ④ MODAL EDITAR NOMBRES */}
-      {editing && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000bb", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16 }}>
-          <div style={{ background: "#13132a", border: `1.5px solid ${C.azul_bd}`, borderRadius: 14, padding: "24px 20px", maxWidth: 480, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
-            <div style={{ color: C.title, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Editar equipos</div>
-            <div style={{ color: "#5a5a8a", fontSize: 11, marginBottom: 16 }}>
-              Los resultados ya registrados se conservan automáticamente.
+              <div style={{ color: "#444488", fontSize: 13, fontWeight: 700 }}>VS</div>
+
+              <button className="btn-modal-team" style={{ background: C.rojo_bg, border: `1.5px solid ${C.rojo_bd}` }} onClick={() => onChoose(eq2, eq1)}>
+                <div style={{ color: C.azul_tx, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>① {eq2 ? eq2[0] : ""}</div>
+                <div style={{ color: "#fff", fontSize: 10, marginBottom: 10 }}>② {eq2 ? eq2[1] : ""}</div>
+                <div style={{ color: C.win_tx, fontSize: 11, fontWeight: 700 }}>✓ Avanza</div>
+              </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {editBuf.map((eq, i) => (
-                <div key={i} style={{ background: "#0d0d20", borderRadius: 8, padding: "8px 10px", border: "1px solid #252545" }}>
-                  <div style={{ color: "#5a5a8a", fontSize: 10, marginBottom: 6 }}>Equipo {i + 1}</div>
-                  <input
-                    value={eq[0]}
-                    placeholder="Jugador 1"
-                    onChange={(e) => { const v = e.target.value; setEditBuf(buf => buf.map((q, idx) => idx === i ? [v, q[1]] : q)); }}
-                    style={{ width: "100%", background: "#080818", border: "1px solid #222244", color: "#fff", borderRadius: 5, padding: "4px 8px", fontSize: 11, marginBottom: 5, boxSizing: "border-box", fontFamily: "inherit" }}
+
+            <button onClick={onClose} style={{ marginTop: 18, background: "transparent", border: "none", color: "#555588", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ───────────────────────── COMPONENTE BracketSide ───────────────────────── */
+    function BracketSide({ side, st, onMatchClick }) {
+      const isLeft = side === "left";
+      const idx0 = isLeft ? 0 : 4;
+      const sty0 = isLeft ? "azul" : "rojo";
+      const sideLabel = isLeft ? "LADO AZUL" : "LADO ROJO";
+      const sideColor = isLeft ? C.azul_bd : C.rojo_bd;
+      const qH = 52, qGap = 20, pairH = qH * 2 + qGap;
+
+      const oct = st.wb[0];
+      const semi = st.wb[1];
+      const quartSlots = [0, 1, 2, 3].map(i => oct[idx0 + i]);
+      const semiSlots = [0, 1].map(i => semi[(isLeft ? 0 : 2) + i]);
+
+      const canQuarters = (pIdx) => oct[idx0 + 2 * pIdx] && oct[idx0 + 2 * pIdx + 1];
+      const canSemi = (sIdx) => semi[(isLeft ? 0 : 2) + 2 * sIdx] && semi[(isLeft ? 0 : 2) + 2 * sIdx + 1];
+
+      return (
+        <div style={{ display: "flex", flexDirection: isLeft ? "row" : "row-reverse", alignItems: "flex-start", gap: 0 }}>
+
+          {/* SECCIÓN A: COLUMNA CUARTOS */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: sideColor, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>{sideLabel}</div>
+            <ColHeader label="Cuartos" color={C.header} />
+            <div style={{ display: "flex", flexDirection: "column", gap: qGap }}>
+              {quartSlots.map((eq, i) => {
+                const pIdx = Math.floor(i / 2);
+                const semiSlotIdx = (isLeft ? 0 : 2) + pIdx;
+                const semiResult = st.wb[1][semiSlotIdx];
+                const isWinner = eq && semiResult && eqEquals(eq, semiResult);
+                const isLoser = eq && semiResult && !eqEquals(eq, semiResult);
+                const sty = eq ? (isWinner ? "win" : sty0) : sty0;
+                const clickable = canQuarters(pIdx) && !semiResult;
+                return (
+                  <TeamBlock
+                    key={i} eq={eq} style={sty} width={BW} compact
+                    clickable={clickable} isDone={!!isLoser}
+                    onClick={() => {
+                      const ai = idx0 + 2 * pIdx, bi = idx0 + 2 * pIdx + 1;
+                      onMatchClick(oct[ai], oct[bi], "CUARTOS");
+                    }}
                   />
-                  <input
-                    value={eq[1]}
-                    placeholder="Jugador 2"
-                    onChange={(e) => { const v = e.target.value; setEditBuf(buf => buf.map((q, idx) => idx === i ? [q[0], v] : q)); }}
-                    style={{ width: "100%", background: "#080818", border: "1px solid #222244", color: "#fff", borderRadius: 5, padding: "4px 8px", fontSize: 11, boxSizing: "border-box", fontFamily: "inherit" }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" }}>
-              <button style={{ background: "transparent", border: "1px solid #333355", borderRadius: 7, color: "#6666aa", fontSize: 12, padding: "6px 16px", cursor: "pointer", fontFamily: "inherit" }} onClick={() => setEditing(false)}>
-                Cancelar
-              </button>
-              <button style={{ background: C.azul_bg, border: `1.5px solid ${C.azul_bd}`, borderRadius: 7, color: C.azul_tx, fontSize: 12, padding: "6px 16px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }} onClick={saveNames}>
-                Guardar nombres
-              </button>
+                );
+              })}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ⑤ MODAL PARTIDO */}
-      {modal && (
-        <MatchModal eq1={modal.e1} eq2={modal.e2} label={modal.etapaLabel} onChoose={handleChoose} onClose={() => setModal(null)} />
-      )}
-
-      {/* ⑥ PANEL BRACKET */}
-      <div style={{ background: C.panelBg, border: "1px solid #1a1a35", borderRadius: 14, padding: "16px 12px", marginBottom: 16 }}>
-        <div className="bracket-scroll">
-          <div className="bracket-inner">
-
-            {/* [A] */}
-            <BracketSide side="left" st={st} onMatchClick={handleMatchClick} />
-
-            {/* [B] CONECTOR IZQUIERDO SEMI→FINAL */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 56 }}>
-              <svg width="56" height="268" style={{ overflow: "visible", display: "block" }}>
-                <line x1="0" y1="80" x2="28" y2="80" stroke={C.line} strokeWidth="1.5" />
-                <line x1="0" y1="224" x2="28" y2="224" stroke={C.line} strokeWidth="1.5" />
-                <line x1="28" y1="80" x2="28" y2="224" stroke={C.line} strokeWidth="1.5" />
-                <line x1="28" y1="152" x2="56" y2="152" stroke={C.line} strokeWidth="1.5" />
-              </svg>
-            </div>
-
-            {/* [C] ZONA CENTRAL */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 190 }}>
-              <ColHeader label="Gran Final" color={C.champ_tx} />
-
-              {mustPlayThirdFirst && (
-                <div style={{ color: C.bronze_tx, fontSize: 10, fontWeight: 700, background: C.bronze_bg, border: `1px solid ${C.bronze_bd}44`, borderRadius: 6, padding: "4px 10px", marginBottom: 8, textAlign: "center" }}>
-                  ⚠ Primero juega el 3er puesto
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                {[fin0, fin1].map((fe, i) => (
-                  <div
-                    key={i}
-                    onClick={canFinal ? handleFinalClick : undefined}
-                    style={{ cursor: canFinal ? "pointer" : "default" }}
-                    title={canFinal ? eqName(fe) : (mustPlayThirdFirst ? "Primero juega el 3er puesto" : undefined)}
-                  >
-                    <TeamBlock eq={fe} style={fe ? "final_w" : "empty"} width={BW} compact clickable={canFinal} onClick={handleFinalClick} />
-                  </div>
-                ))}
-              </div>
-
-              {canFinal && (
-                <div onClick={handleFinalClick} style={{ color: C.champ_tx, fontSize: 10, fontWeight: 700, cursor: "pointer", background: "#1a1000", border: `1px solid ${C.champ_bd}44`, borderRadius: 6, padding: "3px 10px", marginBottom: 8 }}>
-                  ★ CLIC PARA JUGAR FINAL ★
-                </div>
-              )}
-
-              <svg width="2" height="24">
-                <line x1="1" y1="0" x2="1" y2="24" stroke={C.champ_bd} strokeWidth="2" />
-              </svg>
-
-              <div style={{ color: C.champ_tx, fontSize: 10, fontWeight: 700, letterSpacing: 2, marginBottom: 6, textTransform: "uppercase" }}>
-                {champ ? "¡CAMPEONES!" : "Campeón"}
-              </div>
-
-              <ChampBlock eq={champ} width={200} />
-
-              {champ && <div style={{ color: C.champ_bd, fontSize: 13, marginTop: 6 }}>★ ★ ★</div>}
-            </div>
-
-            {/* [D] CONECTOR DERECHO FINAL→SEMI */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 56 }}>
-              <svg width="56" height="268" style={{ overflow: "visible", display: "block" }}>
-                <line x1="56" y1="80" x2="28" y2="80" stroke={C.line} strokeWidth="1.5" />
-                <line x1="56" y1="224" x2="28" y2="224" stroke={C.line} strokeWidth="1.5" />
-                <line x1="28" y1="80" x2="28" y2="224" stroke={C.line} strokeWidth="1.5" />
-                <line x1="28" y1="152" x2="0" y2="152" stroke={C.line} strokeWidth="1.5" />
-              </svg>
-            </div>
-
-            {/* [E] */}
-            <BracketSide side="right" st={st} onMatchClick={handleMatchClick} />
-
-          </div>
-        </div>
-      </div>
-
-      {/* ⑦ PANEL INFERIOR */}
-      <div style={{ background: C.panelBg, border: "1px solid #1a1a35", borderRadius: 14, padding: "16px 12px", display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
-
-        {/* [A] Sección 3er Puesto */}
-        <div style={{ flex: "1 1 300px", background: "#0a0a18", borderRadius: 10, border: "1px solid #1a1a30", padding: "14px 16px", minWidth: 260 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <Medal pos={3} />
-            <span style={{ color: C.bronze_tx, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>3er Puesto</span>
-          </div>
-
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
-            <TeamBlock eq={sl0} style={sl0 ? "azul" : "empty"} width={BW} compact clickable={canThird} onClick={handleThirdClick} />
-            <span style={{ color: "#44446a", fontSize: 12, fontWeight: 700 }}>VS</span>
-            <TeamBlock eq={sl1} style={sl1 ? "rojo" : "empty"} width={BW} compact clickable={canThird} onClick={handleThirdClick} />
-          </div>
-
-          {canThird && (
-            <div style={{ textAlign: "center" }}>
-              <button onClick={handleThirdClick} style={{ background: C.bronze_bg, border: `1px solid ${C.bronze_bd}`, borderRadius: 7, color: C.bronze_tx, fontSize: 11, fontWeight: 700, padding: "5px 14px", cursor: "pointer", fontFamily: "inherit" }}>
-                🥉 Registrar 3er Puesto
-              </button>
-            </div>
-          )}
-
-          {tercero && (
-            <React.Fragment>
-              <div style={{ textAlign: "center", color: "#44446a", fontSize: 10, margin: "8px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>Ganador</div>
-              <div style={{ justifyContent: "center", display: "flex" }}>
-                <TeamBlock eq={tercero} style="bronze" width={BW * 1.2} compact />
-              </div>
-            </React.Fragment>
-          )}
-        </div>
-
-        {/* [B] Sección Podio */}
-        <div style={{ flex: "1 1 300px", background: "#0a0a18", borderRadius: 10, border: "1px solid #1a1a30", padding: "14px 16px", minWidth: 260 }}>
-          <div style={{ color: C.title, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, textAlign: "center", marginBottom: 14 }}>
-            Podio Final
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[{ pos: 1, eq: champ, sty: "champ" }, { pos: 2, eq: sub, sty: "silver" }, { pos: 3, eq: tercero, sty: "bronze" }, { pos: 4, eq: cuarto, sty: "empty" }].map(row => (
-              <div key={row.pos} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d0d20", borderRadius: 8, padding: "6px 10px", border: "1px solid #18183a" }}>
-                {row.pos <= 3
-                  ? <Medal pos={row.pos} />
-                  : <div style={{ width: 40, textAlign: "center", color: "#5a5a7a", fontSize: 12, fontWeight: 700 }}>4to</div>}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <TeamBlock eq={row.eq} style={row.sty} width="100%" compact />
-                </div>
+          {/* SECCIÓN B: CONECTORES CUARTOS → SEMI */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center", width: 36, paddingTop: 36 }}>
+            {[0, 1].map(pIdx => (
+              <div key={pIdx} style={{ width: 36, height: 144 }}>
+                <svg width={36} height={144} style={{ overflow: "visible" }}>
+                  {isLeft ? (
+                    <React.Fragment>
+                      <line x1="0"  y1="26" x2="18" y2="26" stroke={C.line} strokeWidth="1.5" />
+                      <line x1="0"  y1="98" x2="18" y2="98" stroke={C.line} strokeWidth="1.5" />
+                      <line x1="18" y1="26" x2="18" y2="98" stroke={C.line} strokeWidth="1.5" />
+                      <line x1="18" y1="62" x2="36" y2="62" stroke={C.line} strokeWidth="1.5" />
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment>
+                      <line x1="36" y1="26" x2="18" y2="26" stroke={C.line} strokeWidth="1.5" />
+                      <line x1="36" y1="98" x2="18" y2="98" stroke={C.line} strokeWidth="1.5" />
+                      <line x1="18" y1="26" x2="18" y2="98" stroke={C.line} strokeWidth="1.5" />
+                      <line x1="18" y1="62" x2="0"  y2="62" stroke={C.line} strokeWidth="1.5" />
+                    </React.Fragment>
+                  )}
+                </svg>
               </div>
             ))}
           </div>
+
+          {/* SECCIÓN C: COLUMNA SEMIFINAL */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 36 }}>
+            <ColHeader label="Semifinal" color={C.header} />
+            <div style={{ display: "flex", flexDirection: "column", gap: pairH + qGap - qH }}>
+              {semiSlots.map((eq, i) => {
+                const finalSlotIdx = isLeft ? 0 : 1;
+                const finalResult = st.wb[2][finalSlotIdx];
+                const isWinner = eq && finalResult && eqEquals(eq, finalResult);
+                const isLoser = eq && finalResult && !eqEquals(eq, finalResult);
+                const sty = eq ? (isWinner ? "win" : (isLeft ? "azul" : "rojo")) : (isLeft ? "azul" : "rojo");
+                const clickable = canSemi(i) && !finalResult;
+                return (
+                  <TeamBlock
+                    key={i} eq={eq} style={sty} width={BW} compact
+                    clickable={clickable} isDone={!!isLoser}
+                    onClick={() => {
+                      const ai = (isLeft ? 0 : 2) + 2 * i;
+                      onMatchClick(semi[ai], semi[ai + 1], "SEMIFINAL");
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
         </div>
+      );
+    }
 
-      </div>
+    /* ───────────────────────── COMPONENTE PRINCIPAL Torneo2vs2 ───────────────────────── */
+    function Torneo2vs2() {
+      const [st, setSt] = useState(() => { const s = loadFromStorage(); return s ? s.st : initState(EQUIPOS_DEFAULT); });
+      const [history, setHistory] = useState(() => { const s = loadFromStorage(); return s ? s.history : []; });
+      const [equipos, setEquipos] = useState(() => { const s = loadFromStorage(); return s ? s.equipos : EQUIPOS_DEFAULT; });
+      const [modal, setModal] = useState(null);
+      const [editing, setEditing] = useState(false);
+      const [editBuf, setEditBuf] = useState(EQUIPOS_DEFAULT.map(e => [...e]));
+      const [lastAction, setLastAction] = useState("Haz clic en un partido para registrar el ganador");
 
-      {/* ⑧ FOOTER */}
-      <div style={{ textAlign: "center", color: "#2a2a4a", fontSize: 10, marginTop: 12 }}>
-        💾 El progreso se guarda automáticamente en este navegador
-      </div>
+      useEffect(() => { saveToStorage({ st, history, equipos }); }, [st, history, equipos]);
 
-    </div>
-  );
-}
+      const qH = 52, qGap = 20, pairH = qH * 2 + qGap;
 
-ReactDOM.createRoot(document.getElementById("root")).render(<Torneo2v2 />);
-</script>
+      const sub = getSubcampeon(st);
+      const champ = st.wb[3][0];
+      const tercero = st.tercero;
+      const cuarto = st.cuarto;
+      const sl0 = st.semifinal_losers[0];
+      const sl1 = st.semifinal_losers[1];
+      const fin0 = st.wb[2][0];
+      const fin1 = st.wb[2][1];
+      const canThird = sl0 && sl1 && !tercero;
+      const canFinal = fin0 && fin1 && !champ && !!tercero;
+      const mustPlayThirdFirst = fin0 && fin1 && !champ && !tercero && sl0 && sl1;
+
+      const handleMatchClick = (e1, e2, etapaLabel) => { if (e1 && e2) setModal({ e1, e2, etapaLabel }); };
+      const handleFinalClick = () => { if (canFinal) setModal({ e1: fin0, e2: fin1, etapaLabel: "GRAN FINAL" }); };
+      const handleThirdClick = () => { if (canThird) setModal({ e1: sl0, e2: sl1, etapaLabel: "3ER PUESTO" }); };
+
+      const handleChoose = (winner, loser) => {
+        let p = null;
+        for (const cand of PARTIDOS) {
+          const t1 = resolveTeam(st, cand.src1);
+          const t2 = resolveTeam(st, cand.src2);
+          if ((eqEquals(t1, winner) && eqEquals(t2, loser)) || (eqEquals(t1, loser) && eqEquals(t2, winner))) {
+            p = cand; break;
+          }
+        }
+        if (!p) { setModal(null); return; }
+        setHistory(h => [...h, st]);
+        const newSt = applyResult(st, p, winner, loser);
+        setSt(newSt);
+        setLastAction(`${p.etapa}: avanzó ${eqName(winner)}`);
+        setModal(null);
+      };
+
+      const undo = () => {
+        if (history.length === 0) return;
+        setSt(history[history.length - 1]);
+        setHistory(h => h.slice(0, -1));
+        setLastAction("Partido deshecho");
+      };
+
+      const reset = () => {
+        if (!window.confirm("¿Reiniciar el torneo? Se perderán todos los resultados.")) return;
+        setSt(initState(equipos));
+        setHistory([]);
+        setLastAction("Torneo reiniciado");
+      };
+
+      const saveNames = () => {
+        const newEq = editBuf.map(e => [e[0].trim() || "???", e[1].trim() || "???"]);
+        const newSt = remapState(equipos, newEq, st);
+        const newHist = history.map(hSt => remapState(equipos, newEq, hSt));
+        setEquipos(newEq); setSt(newSt); setHistory(newHist);
+        setEditing(false); setLastAction("Nombres actualizados ✓");
+      };
+
+      return (
+        <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", padding: "16px 12px 32px" }}>
+
+          {/* ① TÍTULO */}
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <div style={{ color: C.title, fontSize: 18, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>TORNEO 2 VS 2 — ELIMINACIÓN DIRECTA</div>
+            <div style={{ color: "#5a5a8a", fontSize: 11, marginTop: 3 }}>8 equipos · Cuartos → Semifinal → Final</div>
+          </div>
+
+          {/* ② BOTONES CONTROL */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+            <button className="btn-ctrl" onClick={() => { setEditBuf(equipos.map(e => [...e])); setEditing(true); }}>✎ Editar nombres</button>
+            <button className="btn-ctrl" onClick={undo} disabled={history.length === 0}>↩ Deshacer</button>
+            <button className="btn-ctrl" onClick={reset}>↺ Reiniciar</button>
+          </div>
+
+          {/* ③ LAST ACTION */}
+          <div style={{ textAlign: "center", color: "#7a7aaa", fontSize: 11, marginBottom: 18, fontStyle: "italic" }}>{lastAction}</div>
+
+          {/* ④ MODAL EDITAR NOMBRES */}
+          {editing && (
+            <div style={{ position: "fixed", inset: 0, background: "#000000bb", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16 }}>
+              <div style={{ background: "#13132a", border: `1.5px solid ${C.azul_bd}`, borderRadius: 14, padding: "24px 20px", maxWidth: 480, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
+                <div style={{ color: C.title, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Editar equipos</div>
+                <div style={{ color: "#5a5a8a", fontSize: 11, marginBottom: 16 }}>Los resultados ya registrados se conservan automáticamente.</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {editBuf.map((eq, i) => (
+                    <div key={i} style={{ background: "#0d0d20", borderRadius: 8, padding: "8px 10px", border: "1px solid #252545" }}>
+                      <div style={{ color: "#5a5a8a", fontSize: 10, marginBottom: 6 }}>Equipo {i + 1}</div>
+                      <input
+                        value={eq[0]}
+                        onChange={(e) => { const v = e.target.value; setEditBuf(buf => buf.map((t, j) => j === i ? [v, t[1]] : t)); }}
+                        placeholder="Jugador 1"
+                        style={{ width: "100%", background: "#080818", border: "1px solid #222244", color: "#fff", borderRadius: 5, padding: "4px 8px", fontSize: 11, marginBottom: 5, boxSizing: "border-box", fontFamily: "inherit" }}
+                      />
+                      <input
+                        value={eq[1]}
+                        onChange={(e) => { const v = e.target.value; setEditBuf(buf => buf.map((t, j) => j === i ? [t[0], v] : t)); }}
+                        placeholder="Jugador 2"
+                        style={{ width: "100%", background: "#080818", border: "1px solid #222244", color: "#fff", borderRadius: 5, padding: "4px 8px", fontSize: 11, boxSizing: "border-box", fontFamily: "inherit" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" }}>
+                  <button onClick={() => setEditing(false)} style={{ background: "transparent", border: "1px solid #333355", borderRadius: 7, color: "#6666aa", fontSize: 12, padding: "6px 16px", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+                  <button onClick={saveNames} style={{ background: C.azul_bg, border: `1.5px solid ${C.azul_bd}`, borderRadius: 7, color: C.azul_tx, fontSize: 12, padding: "6px 16px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Guardar nombres</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ⑤ MODAL PARTIDO */}
+          {modal && <MatchModal eq1={modal.e1} eq2={modal.e2} label={modal.etapaLabel} onChoose={handleChoose} onClose={() => setModal(null)} />}
+
+          {/* ⑥ PANEL BRACKET */}
+          <div style={{ background: C.panelBg, border: "1px solid #1a1a35", borderRadius: 14, padding: "16px 12px", marginBottom: 16 }}>
+            <div className="bracket-scroll">
+              <div className="bracket-inner">
+
+                {/* [A] */}
+                <BracketSide side="left" st={st} onMatchClick={handleMatchClick} />
+
+                {/* [B] CONECTOR IZQUIERDO SEMI→FINAL */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 56 }}>
+                  <svg width={56} height={268} style={{ overflow: "visible", display: "block" }}>
+                    <line x1="0"  y1="80"  x2="28" y2="80"  stroke={C.line} strokeWidth="1.5" />
+                    <line x1="0"  y1="224" x2="28" y2="224" stroke={C.line} strokeWidth="1.5" />
+                    <line x1="28" y1="80"  x2="28" y2="224" stroke={C.line} strokeWidth="1.5" />
+                    <line x1="28" y1="152" x2="56" y2="152" stroke={C.line} strokeWidth="1.5" />
+                  </svg>
+                </div>
+
+                {/* [C] ZONA CENTRAL */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 190 }}>
+                  <ColHeader label="Gran Final" color={C.champ_tx} />
+
+                  {mustPlayThirdFirst && (
+                    <div style={{ color: C.bronze_tx, fontSize: 10, fontWeight: 700, background: C.bronze_bg, border: `1px solid ${C.bronze_bd}44`, borderRadius: 6, padding: "4px 10px", marginBottom: 8, textAlign: "center" }}>⚠ Primero juega el 3er puesto</div>
+                  )}
+
+                  <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+                    <div
+                      onClick={canFinal ? handleFinalClick : undefined}
+                      style={{ cursor: canFinal ? "pointer" : "default" }}
+                      title={canFinal ? eqName(fin0) : (mustPlayThirdFirst ? "Primero debe jugarse el 3er puesto" : undefined)}
+                    >
+                      <TeamBlock eq={fin0} style={fin0 ? "final_w" : "empty"} width={BW} compact clickable={canFinal} onClick={handleFinalClick} />
+                    </div>
+                    <div
+                      onClick={canFinal ? handleFinalClick : undefined}
+                      style={{ cursor: canFinal ? "pointer" : "default" }}
+                      title={canFinal ? eqName(fin1) : (mustPlayThirdFirst ? "Primero debe jugarse el 3er puesto" : undefined)}
+                    >
+                      <TeamBlock eq={fin1} style={fin1 ? "final_w" : "empty"} width={BW} compact clickable={canFinal} onClick={handleFinalClick} />
+                    </div>
+                  </div>
+
+                  {canFinal && (
+                    <div onClick={handleFinalClick} style={{ color: C.champ_tx, fontSize: 10, fontWeight: 700, cursor: "pointer", background: "#1a1000", border: `1px solid ${C.champ_bd}44`, borderRadius: 6, padding: "3px 10px", marginBottom: 8 }}>★ CLIC PARA JUGAR FINAL ★</div>
+                  )}
+
+                  <svg width={2} height={24}>
+                    <line x1="1" y1="0" x2="1" y2="24" stroke={C.champ_bd} strokeWidth="2" />
+                  </svg>
+
+                  <div style={{ color: C.champ_tx, fontSize: 10, fontWeight: 700, letterSpacing: 2, marginBottom: 6, textTransform: "uppercase" }}>{champ ? "¡CAMPEONES!" : "Campeón"}</div>
+
+                  <ChampBlock eq={champ} width={200} />
+
+                  {champ && <div style={{ color: C.champ_bd, fontSize: 13, marginTop: 6 }}>★ ★ ★</div>}
+                </div>
+
+                {/* [D] CONECTOR DERECHO FINAL→SEMI */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 56 }}>
+                  <svg width={56} height={268} style={{ overflow: "visible", display: "block" }}>
+                    <line x1="56" y1="80"  x2="28" y2="80"  stroke={C.line} strokeWidth="1.5" />
+                    <line x1="56" y1="224" x2="28" y2="224" stroke={C.line} strokeWidth="1.5" />
+                    <line x1="28" y1="80"  x2="28" y2="224" stroke={C.line} strokeWidth="1.5" />
+                    <line x1="28" y1="152" x2="0"  y2="152" stroke={C.line} strokeWidth="1.5" />
+                  </svg>
+                </div>
+
+                {/* [E] */}
+                <BracketSide side="right" st={st} onMatchClick={handleMatchClick} />
+              </div>
+            </div>
+          </div>
+
+          {/* ⑦ PANEL INFERIOR */}
+          <div style={{ background: C.panelBg, border: "1px solid #1a1a35", borderRadius: 14, padding: "16px 12px", display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
+
+            {/* [A] Sección 3er Puesto */}
+            <div style={{ flex: "1 1 300px", background: "#0a0a18", borderRadius: 10, border: "1px solid #1a1a30", padding: "14px 16px", minWidth: 260 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <Medal pos={3} />
+                <span style={{ color: C.bronze_tx, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>3er Puesto</span>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+                <TeamBlock eq={sl0} style={sl0 ? "azul" : "empty"} width={BW} compact clickable={canThird} onClick={handleThirdClick} />
+                <span style={{ color: "#44446a", fontSize: 12, fontWeight: 700 }}>VS</span>
+                <TeamBlock eq={sl1} style={sl1 ? "rojo" : "empty"} width={BW} compact clickable={canThird} onClick={handleThirdClick} />
+              </div>
+
+              {canThird && (
+                <div style={{ textAlign: "center" }}>
+                  <button onClick={handleThirdClick} style={{ background: C.bronze_bg, border: `1px solid ${C.bronze_bd}`, borderRadius: 7, color: C.bronze_tx, fontSize: 11, fontWeight: 700, padding: "5px 14px", cursor: "pointer", fontFamily: "inherit" }}>🥉 Registrar 3er Puesto</button>
+                </div>
+              )}
+
+              {tercero && (
+                <React.Fragment>
+                  <div style={{ textAlign: "center", color: "#44446a", fontSize: 10, margin: "8px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>Ganador</div>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <TeamBlock eq={tercero} style="bronze" width={BW * 1.2} compact />
+                  </div>
+                </React.Fragment>
+              )}
+            </div>
+
+            {/* [B] Sección Podio */}
+            <div style={{ flex: "1 1 300px", background: "#0a0a18", borderRadius: 10, border: "1px solid #1a1a30", padding: "14px 16px", minWidth: 260 }}>
+              <div style={{ color: C.title, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, textAlign: "center", marginBottom: 14 }}>Podio Final</div>
+              {[
+                { pos: 1, eq: champ, sty: "champ" },
+                { pos: 2, eq: sub, sty: "silver" },
+                { pos: 3, eq: tercero, sty: "bronze" },
+                { pos: 4, eq: cuarto, sty: "empty" },
+              ].map(row => (
+                <div key={row.pos} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d0d20", borderRadius: 8, padding: "6px 10px", border: "1px solid #18183a", marginBottom: 8 }}>
+                  {row.pos <= 3
+                    ? <Medal pos={row.pos} />
+                    : <div style={{ width: 40, textAlign: "center", color: "#5a5a7a", fontSize: 12, fontWeight: 700 }}>4to</div>}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <TeamBlock eq={row.eq} style={row.sty} width="100%" compact />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ⑧ FOOTER */}
+          <div style={{ textAlign: "center", color: "#2a2a4a", fontSize: 10, marginTop: 12 }}>💾 El progreso se guarda automáticamente en este navegador</div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<Torneo2vs2 />);
+  </script>
 </body>
 </html>
