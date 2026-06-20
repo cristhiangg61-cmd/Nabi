@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bracket de Torneo</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #080812;
+    color: #e6e6f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  ::-webkit-scrollbar { height: 10px; width: 10px; }
+  ::-webkit-scrollbar-track { background: #0d0d1e; }
+  ::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 5px; }
+  input, textarea, select { font-family: inherit; }
+  @keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes glow { 0%,100% { box-shadow: 0 0 16px rgba(204,136,0,.35); } 50% { box-shadow: 0 0 32px rgba(204,136,0,.7); } }
+  /* FIX #3 — tooltip para nombres largos */
+  .team-name-tip { position: relative; }
+  .team-name-tip:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 110%; left: 50%; transform: translateX(-50%);
+    background: #1a1a38; border: 1px solid #3a3a6a; color: #e6e6f0;
+    font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px;
+    white-space: nowrap; z-index: 200; pointer-events: none;
+  }
+  /* FIX #6 — zoom bracket */
+  .bracket-zoomable { transform-origin: top left; transition: transform .2s; }
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff !important; color: #000 !important; }
+  }
+</style>
+
+<!-- ✅ FIX #1 CDN: React 18 fijo (estable), Babel apunta a unpkg sin versión fija -->
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Exportar PNG/PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useCallback, useReducer, useRef } = React;
+
+/* ============================================================
+   PALETA (tema oscuro)
+   ============================================================ */
+const PAL = {
+  bg:     '#080812',
+  panel:  '#0d0d1e',
+  blue:   { bg:'#0e1f3d', border:'#2d6fdd', text:'#7ab8ff' },
+  red:    { bg:'#3d0e0e', border:'#dd2d2d', text:'#ff7a7a' },
+  win:    { bg:'#0e2e1a', border:'#27a050', text:'#50e87a' },
+  champ:  { bg:'#2a1a00', border:'#cc8800', text:'#ffd700' },
+  silver: { bg:'#1c1c1c', border:'#909090', text:'#d0d0d0' },
+  bronze: { bg:'#2a1400', border:'#a05a20', text:'#cd7f32' },
+  empty:  { bg:'#0d0d20', border:'#282845', text:'#3a3a60' },
+  elim:   { bg:'#111128', border:'#3a3a6a', text:'#5a5a9a' },
+};
+
+/* ============================================================
+   GEOMETRÍA DEL BRACKET
+   ============================================================ */
+const TEAM_H = 46, TEAM_GAP = 6;
+const MATCH_H = TEAM_H * 2 + TEAM_GAP;
+const MATCH_VGAP = 30;
+const SLOT = MATCH_H + MATCH_VGAP;
+const TOP_PAD = 34;
+const COL_W = 214;
+const BOX_W = 174;
+const HALF_BOX = (TEAM_H + TEAM_GAP) / 2;
+
+/* ✅ FIX #4 — Etiquetas "1 VS 1", "2 VS 2", etc. */
+const MODES = {
+  '1 VS 1': 1, '2 VS 2': 2, '3 VS 3': 3, '4 VS 4': 4, '5 VS 5': 5,
+};
+const TEAM_COUNTS = [2, 4, 8, 16, 32, 64, 128];
+
+const CLASSIC_BY_TEAMS_IN = { 2: 'Final', 4: 'Semifinal', 8: 'Cuartos', 16: 'Octavos', 32: '16avos' };
+function roundNamesFor(N) {
+  const names = [];
+  let teamsIn = N;
+  let roundNum = 1;
+  while (teamsIn > 1) {
+    if (CLASSIC_BY_TEAMS_IN[teamsIn]) {
+      names.push(CLASSIC_BY_TEAMS_IN[teamsIn]);
+    } else {
+      names.push('Ronda ' + roundNum);
+      roundNum++;
+    }
+    teamsIn = teamsIn / 2;
+  }
+  return names;
+}
+
+/* ✅ FIX #8 — teamsEqual robusto: convierte a número antes de comparar */
+function teamsEqual(a, b) {
+  if (a == null || b == null) return false;
+  return Number(a) === Number(b);
+}
+
+/* ============================================================
+   PERSISTENCIA (localStorage, tolerante a fallos)
+   ✅ FIX #7 — NO guardamos history en localStorage para no saturarlo
+   ============================================================ */
+const LS_KEY = 'torneo_bracket_v2';
+function lsSave(state) {
+  try {
+    // FIX #7: excluir history del guardado
+    const { history: _h, ...toSave } = state;
+    localStorage.setItem(LS_KEY, JSON.stringify(toSave));
+  } catch (e) {
+    // QuotaExceededError silenciado — el usuario sigue trabajando sin persistencia
+  }
+}
+function lsLoad() { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function lsClear() { try { localStorage.removeItem(LS_KEY); } catch (e) {} }
+
+/* ============================================================
+   CONSTRUCCIÓN DEL BRACKET
+   ============================================================ */
+function buildBracket(N) {
+  const rounds = [Array.from({ length: N }, (_, i) => i)];
+  let c = N;
+  while (c > 1) { c = Math.floor(c / 2); rounds.push(Array(c).fill(null)); }
+  return { rounds, semifinal_losers: [null, null], tercero: null, cuarto: null };
+}
+
+function computeSemiLosers(rounds) {
+  const R = rounds.length;
+  /* ✅ FIX #5 — semiRound nunca puede ser -1 efectivo porque guardamos [null,null] si <0 */
+  const semiRound = R - 3;
+  if (semiRound < 0 || !rounds[semiRound]) return [null, null];
+  const out = [null, null];
+  for (let m = 0; m < 2; m++) {
+    const a = rounds[semiRound][2 * m];
+    const b = rounds[semiRound][2 * m + 1];
+    const w = rounds[semiRound + 1] ? rounds[semiRound + 1][m] : null;
+    if (a != null && b != null && w != null) out[m] = teamsEqual(w, a) ? b : a;
+  }
+  return out;
+}
+
+/* ============================================================
+   REDUCER CENTRAL — ✅ FIX #2/#3/#9
+   Unifica bracket + history en un único dispatch atómico,
+   eliminando stale closures y efectos secundarios en setters.
+   ============================================================ */
+const INIT_GAME = { bracket: null, history: [] };
+
+function gameReducer(state, action) {
+  switch (action.type) {
+
+    case 'START': {
+      return { bracket: buildBracket(action.n), history: [] };
+    }
+
+    case 'PICK_WINNER': {
+      const { r, i, winnerId } = action;
+      const prev = state.bracket;
+      const rounds = prev.rounds.map(row => row.slice());
+      const R = rounds.length;
+      const old = rounds[r + 1][i];
+      rounds[r + 1][i] = winnerId;
+      /* ✅ FIX #2/#9 — limpiar rondas posteriores si cambió el ganador */
+      if (!teamsEqual(old, winnerId)) {
+        let idx = i;
+        for (let rr = r + 2; rr <= R - 1; rr++) { idx = Math.floor(idx / 2); rounds[rr][idx] = null; }
+      }
+      const semis = computeSemiLosers(rounds);
+      let { tercero, cuarto } = prev;
+      const semisChanged = !teamsEqual(semis[0], prev.semifinal_losers[0])
+                        || !teamsEqual(semis[1], prev.semifinal_losers[1]);
+      if (semisChanged) { tercero = null; cuarto = null; }
+      const newBracket = { rounds, semifinal_losers: semis, tercero, cuarto };
+      return { bracket: newBracket, history: [...state.history, prev] };
+    }
+
+    case 'PICK_THIRD': {
+      const { winnerId } = action;
+      const prev = state.bracket;
+      const [l0, l1] = prev.semifinal_losers;
+      const cuarto = teamsEqual(winnerId, l0) ? l1 : l0;
+      const newBracket = { ...prev, tercero: winnerId, cuarto };
+      return { bracket: newBracket, history: [...state.history, prev] };
+    }
+
+    case 'UNDO': {
+      if (state.history.length === 0) return state;
+      const history = state.history.slice(0, -1);
+      const bracket = state.history[state.history.length - 1];
+      return { bracket, history };
+    }
+
+    case 'RESET_BRACKET': {
+      return { bracket: buildBracket(action.n), history: [] };
+    }
+
+    case 'LOAD': {
+      return { bracket: action.bracket, history: [] };
+    }
+
+    default:
+      return state;
+  }
+}
+
+/* ============================================================
+   ETIQUETA DE EQUIPO
+   ✅ FIX #3 — tooltip al pasar el mouse cuando el nombre es largo
+   ============================================================ */
+function TeamLabel({ id, teamValues, dim }) {
+  if (id == null) return <span style={{ opacity: .8 }}>—</span>;
+  const v = teamValues[id];
+  if (!v) return <span style={{ opacity: .8 }}>—</span>;
+  const players = v.players || [];
+  const showPlayers = players.length > 1;
+  return (
+    <span style={{ display:'flex', flexDirection:'column', lineHeight:1.14, minWidth:0, overflow:'hidden' }}>
+      <span
+        className="team-name-tip"
+        data-tip={v.name}
+        style={ellipsis(12.5)}
+      >{v.name}</span>
+      {showPlayers && (
+        <span
+          className="team-name-tip"
+          data-tip={players.filter(Boolean).join(' · ')}
+          style={{ ...ellipsis(10), opacity: dim ? .65 : .8, fontWeight:500 }}
+        >
+          {players.filter(Boolean).join(' · ')}
+        </span>
+      )}
+    </span>
+  );
+}
+function ellipsis(fs) {
+  return { whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', fontSize:fs, fontWeight:700, maxWidth:'100%' };
+}
+
+/* ============================================================
+   CAJA DE EQUIPO
+   ============================================================ */
+function TeamBox({ x, y, id, state, side, teamValues, onClick }) {
+  let c;
+  if (state === 'empty') c = PAL.empty;
+  else if (state === 'elim') c = PAL.elim;
+  else if (state === 'win') c = PAL.win;
+  else c = side === 'R' ? PAL.red : PAL.blue;
+
+  const style = {
+    position:'absolute', left:x, top:y, width:BOX_W, height:TEAM_H,
+    background:c.bg, border:`2px ${state === 'empty' ? 'dashed' : 'solid'} ${c.border}`,
+    borderRadius:9, color:c.text, display:'flex', alignItems:'center', justifyContent:'space-between',
+    padding:'0 10px', gap:6, opacity: state === 'elim' ? 0.45 : 1,
+    cursor: onClick ? 'pointer' : 'default', userSelect:'none', overflow:'hidden',
+    transition:'background .15s, border-color .15s, opacity .2s',
+    boxShadow: state === 'win' ? '0 0 12px rgba(39,160,80,.35)' : 'none',
+  };
+  return (
+    <div style={style} onClick={onClick} title={onClick ? 'Elegir ganador' : undefined}>
+      <TeamLabel id={id} teamValues={teamValues} dim={state === 'elim'} />
+      {state === 'win' && <span style={{ fontSize:14, flexShrink:0 }}>✓</span>}
+      {state === 'elim' && <span style={{ fontSize:8.5, fontWeight:800, letterSpacing:.5, flexShrink:0, opacity:.8 }}>ELIMINADO</span>}
+    </div>
+  );
+}
+
+/* ============================================================
+   PANTALLA DE CONFIGURACIÓN
+   ✅ FIX #5 — importar datos (JSON/CSV)
+   ============================================================ */
+function ConfigScreen({ onStart }) {
+  const [mode, setMode] = useState('1 VS 1');
+  const [numTeams, setNumTeams] = useState(8);
+  const mk = (n, m) => Array.from({ length: n }, () => ({ name:'', players: Array(MODES[m]).fill('') }));
+  const [rows, setRows] = useState(() => mk(8, '1 VS 1'));
+  const [importError, setImportError] = useState('');
+  const fileRef = useRef(null);
+
+  const changeMode = (m) => {
+    setMode(m);
+    setRows(prev => prev.map(row => ({
+      name: row.name,
+      players: Array.from({ length: MODES[m] }, (_, j) => row.players[j] || ''),
+    })));
+  };
+  const changeNum = (n) => {
+    setNumTeams(n);
+    setRows(prev => {
+      const base = mk(n, mode);
+      for (let i = 0; i < Math.min(n, prev.length); i++) base[i] = prev[i];
+      return base;
+    });
+  };
+  const setTeamName = (i, v) => setRows(prev => prev.map((row, ri) => ri === i ? { ...row, name: v } : row));
+  const setPlayerName = (i, j, v) => setRows(prev => prev.map((row, ri) =>
+    ri === i ? { ...row, players: row.players.map((c, ci) => ci === j ? v : c) } : row));
+
+  const playersPerTeam = MODES[mode];
+
+  /* ✅ FIX #5 — importar JSON o CSV */
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImportError('');
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        let parsed = [];
+        if (file.name.endsWith('.json')) {
+          parsed = JSON.parse(text);
+          if (!Array.isArray(parsed)) throw new Error('El JSON debe ser un array de equipos.');
+        } else {
+          // CSV: cada línea = "NombreEquipo,Jugador1,Jugador2,..."
+          parsed = text.trim().split('\n').map(line => {
+            const parts = line.split(',').map(s => s.trim());
+            return { name: parts[0] || '', players: parts.slice(1) };
+          });
+        }
+        const n = Math.min(parsed.length, 128);
+        // Encontrar el tamaño de bracket más cercano
+        const validN = TEAM_COUNTS.reduce((prev, cur) => Math.abs(cur - n) < Math.abs(prev - n) ? cur : prev);
+        changeNum(validN);
+        setRows(Array.from({ length: validN }, (_, i) => {
+          const t = parsed[i] || { name:'', players:[] };
+          return {
+            name: t.name || '',
+            players: Array.from({ length: playersPerTeam }, (_, j) => (t.players && t.players[j]) || ''),
+          };
+        }));
+      } catch (err) {
+        setImportError('Error al importar: ' + err.message);
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const start = () => {
+    const values = {};
+    for (let i = 0; i < numTeams; i++) {
+      const row = rows[i] || { name:'', players: Array(playersPerTeam).fill('') };
+      const players = Array.from({ length: playersPerTeam }, (_, j) =>
+        (row.players[j] || '').trim() || ('Jugador ' + (playersPerTeam * i + j + 1)));
+      const defaultTeamName = playersPerTeam === 1 ? players[0] : ('Equipo ' + (i + 1));
+      const name = (row.name || '').trim() || defaultTeamName;
+      values[i] = { name, players: playersPerTeam === 1 ? [name] : players };
+    }
+    onStart(mode, numTeams, values);
+  };
+
+  const seg = (active) => ({
+    flex:1, padding:'11px 6px', borderRadius:10, cursor:'pointer', textAlign:'center',
+    fontWeight:700, fontSize:14, transition:'all .15s', border:'2px solid',
+    background: active ? '#15244a' : '#0a0a18',
+    borderColor: active ? PAL.blue.border : '#222240',
+    color: active ? PAL.blue.text : '#6a6a90',
+  });
+  const segSmall = (active) => ({
+    ...seg(active), padding:'9px 4px', fontSize:13,
+  });
+
+  return (
+    <div style={{ maxWidth:820, margin:'0 auto', padding:'32px 20px 60px' }}>
+      <Header />
+      <div style={card()}>
+        <h2 style={sectionTitle()}>1 · Modo de juego</h2>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {Object.keys(MODES).map(m => (
+            <div key={m} style={seg(mode === m)} onClick={() => changeMode(m)}>
+              {m}<div style={subLabel()}>{MODES[m]} jugador{MODES[m] > 1 ? 'es' : ''} / equipo</div>
+            </div>
+          ))}
+        </div>
+
+        <h2 style={{ ...sectionTitle(), marginTop:26 }}>2 · Número de equipos</h2>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {TEAM_COUNTS.map(n => (
+            <div key={n} style={{ ...segSmall(numTeams === n), minWidth:74 }} onClick={() => changeNum(n)}>
+              {n}<div style={subLabel()}>{phaseLabel(n)}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop:10, fontSize:12.5, color:'#7a7aa0' }}>
+          Total de jugadores: <b style={{ color:'#b8b8d8' }}>{numTeams * playersPerTeam}</b>
+          {' '}({numTeams} equipos × {playersPerTeam} jugador{playersPerTeam > 1 ? 'es' : ''})
+        </div>
+
+        {/* ✅ FIX #5 — Botón de importar */}
+        <h2 style={{ ...sectionTitle(), marginTop:26 }}>3 · Importar equipos (opcional)</h2>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          <button style={{ ...ghostBtn(true, false), flex:'0 0 auto' }} onClick={() => fileRef.current && fileRef.current.click()}>
+            📂 Importar JSON / CSV
+          </button>
+          <input ref={fileRef} type="file" accept=".json,.csv" style={{ display:'none' }} onChange={handleImport} />
+          <span style={{ fontSize:12, color:'#6a6a95' }}>
+            CSV: <code style={{ background:'#1a1a30', padding:'2px 5px', borderRadius:4 }}>NombreEquipo,Jugador1,Jugador2</code> (una fila por equipo)
+          </span>
+        </div>
+        {importError && <div style={{ marginTop:8, color:PAL.red.text, fontSize:12.5 }}>{importError}</div>}
+
+        <h2 style={{ ...sectionTitle(), marginTop:26 }}>4 · Nombres (opcional, puedes editarlos después)</h2>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(230px,1fr))', gap:10, maxHeight:'48vh', overflowY:'auto', paddingRight:4 }}>
+          {rows.map((row, i) => (
+            <div key={i} style={{ background:'#0a0a18', border:'1px solid #1d1d38', borderRadius:10, padding:'9px 11px' }}>
+              <div style={{ fontSize:11, color:'#5a5a85', fontWeight:700, marginBottom:6 }}>EQUIPO {i + 1}</div>
+              {playersPerTeam > 1 && (
+                <input style={inp()} placeholder={'Nombre del equipo ' + (i + 1)}
+                       value={row.name} onChange={e => setTeamName(i, e.target.value)} />
+              )}
+              {Array.from({ length: playersPerTeam }, (_, j) => (
+                <input key={j} style={{ ...inp(), marginTop:6 }}
+                       placeholder={playersPerTeam > 1 ? ('Jugador ' + (j + 1)) : ('Equipo ' + (i + 1))}
+                       value={row.players[j]} onChange={e => setPlayerName(i, j, e.target.value)} />
+              ))}
+            </div>
+          ))}
+        </div>
+
+        <button style={primaryBtn()} onClick={start}>Iniciar Torneo →</button>
+      </div>
+    </div>
+  );
+}
+function phaseLabel(n) {
+  const names = roundNamesFor(n);
+  return names[0];
+}
+
+/* ============================================================
+   EDITAR NOMBRES
+   ============================================================ */
+function EditNames({ mode, numTeams, teamValues, onSave, onCancel }) {
+  const playersPerTeam = MODES[mode];
+  const init = () => {
+    const o = {};
+    for (let i = 0; i < numTeams; i++) {
+      const v = teamValues[i];
+      o[i] = {
+        name: v?.name || '',
+        players: Array.from({ length: playersPerTeam }, (_, j) => (v?.players && v.players[j]) || ''),
+      };
+    }
+    return o;
+  };
+  const [vals, setVals] = useState(init);
+  const [filter, setFilter] = useState('');
+  const setTeamName = (i, v) => setVals(prev => ({ ...prev, [i]: { ...prev[i], name: v } }));
+  const setPlayer = (i, j, v) => setVals(prev => ({
+    ...prev, [i]: { ...prev[i], players: prev[i].players.map((c, ci) => ci === j ? v : c) },
+  }));
+  const save = () => {
+    const out = {};
+    for (let i = 0; i < numTeams; i++) {
+      const row = vals[i];
+      const players = Array.from({ length: playersPerTeam }, (_, j) =>
+        (row.players[j] || '').trim() || ('Jugador ' + (playersPerTeam * i + j + 1)));
+      const defaultTeamName = playersPerTeam === 1 ? players[0] : ('Equipo ' + (i + 1));
+      const name = (row.name || '').trim() || defaultTeamName;
+      out[i] = { name, players: playersPerTeam === 1 ? [name] : players };
+    }
+    onSave(out);
+  };
+
+  const f = filter.trim().toLowerCase();
+  const visible = [];
+  for (let i = 0; i < numTeams; i++) {
+    if (!f) { visible.push(i); continue; }
+    const row = vals[i];
+    const hay = (String(i + 1) + ' ' + row.name + ' ' + row.players.join(' ')).toLowerCase();
+    if (hay.includes(f)) visible.push(i);
+  }
+
+  return (
+    <Overlay onClose={onCancel}>
+      <div style={{ ...modalCard(), maxWidth:560 }}>
+        <h2 style={{ margin:'0 0 4px', fontSize:19 }}>Editar nombres</h2>
+        <p style={{ margin:'0 0 12px', color:'#7a7aa0', fontSize:13 }}>Los cambios se aplican a todo el torneo sin perder el progreso.</p>
+        {numTeams > 16 && (
+          <input style={{ ...inp(), marginBottom:10 }} placeholder="Buscar equipo o jugador…"
+                 value={filter} onChange={e => setFilter(e.target.value)} />
+        )}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(210px,1fr))', gap:10, maxHeight:'52vh', overflowY:'auto', paddingRight:4 }}>
+          {visible.map(i => (
+            <div key={i} style={{ background:'#0a0a18', border:'1px solid #1d1d38', borderRadius:10, padding:'9px 11px' }}>
+              <div style={{ fontSize:11, color:'#5a5a85', fontWeight:700, marginBottom:6 }}>EQUIPO {i + 1}</div>
+              {playersPerTeam > 1 && (
+                <input style={inp()} placeholder="Nombre del equipo"
+                       value={vals[i].name} onChange={e => setTeamName(i, e.target.value)} />
+              )}
+              {Array.from({ length: playersPerTeam }, (_, j) => (
+                <input key={j} style={{ ...inp(), marginTop:6 }}
+                       placeholder={playersPerTeam > 1 ? ('Jugador ' + (j + 1)) : 'Nombre del equipo'}
+                       value={vals[i].players[j]} onChange={e => setPlayer(i, j, e.target.value)} />
+              ))}
+            </div>
+          ))}
+          {visible.length === 0 && (
+            <div style={{ gridColumn:'1 / -1', ...emptyNote() }}>Sin resultados para "{filter}".</div>
+          )}
+        </div>
+        {/* ✅ FIX #1 — ghostBtn con argumentos explícitos */}
+        <div style={{ display:'flex', gap:10, marginTop:18 }}>
+          <button style={ghostBtn(true, false)} onClick={onCancel}>Cancelar</button>
+          <button style={{ ...primaryBtn(), marginTop:0 }} onClick={save}>Guardar cambios</button>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+/* ============================================================
+   MODAL "¿QUIÉN AVANZA?"
+   ============================================================ */
+function PickModal({ title, subtitle, options, teamValues, onPick, onClose }) {
+  return (
+    <Overlay onClose={onClose}>
+      <div style={modalCard()}>
+        <h2 style={{ margin:'0 0 2px', fontSize:20, textAlign:'center' }}>{title}</h2>
+        {subtitle && <p style={{ margin:'0 0 18px', color:'#7a7aa0', fontSize:13, textAlign:'center' }}>{subtitle}</p>}
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {options.map((opt, k) => {
+            const c = opt.side === 'R' ? PAL.red : PAL.blue;
+            return (
+              <button key={k} onClick={() => onPick(opt.id)}
+                style={{ background:c.bg, border:`2px solid ${c.border}`, color:c.text, borderRadius:12,
+                         padding:'16px 18px', fontSize:16, fontWeight:800, cursor:'pointer', textAlign:'left',
+                         display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <TeamLabel id={opt.id} teamValues={teamValues} />
+                <span style={{ fontSize:13, opacity:.8, flexShrink:0, marginLeft:8 }}>avanza →</span>
+              </button>
+            );
+          })}
+        </div>
+        {/* ✅ FIX #1 — ghostBtn con argumentos explícitos */}
+        <button style={{ ...ghostBtn(true, false), marginTop:16, width:'100%' }} onClick={onClose}>Cancelar</button>
+      </div>
+    </Overlay>
+  );
+}
+
+function Overlay({ children, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(2,2,10,.72)',
+      backdropFilter:'blur(3px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100, padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ animation:'pop .18s ease-out', width:'100%', display:'flex', justifyContent:'center' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   VISTA DEL BRACKET
+   ✅ FIX #4 (boxState) + FIX #6 (zoom)
+   ============================================================ */
+function BracketView({ bracket, teamValues, onPickMatch, zoom }) {
+  const layout = useMemo(() => computeLayout(bracket.rounds), [bracket.rounds]);
+  const { rounds } = bracket;
+  const R = rounds.length;
+
+  /* ✅ FIX #4 — índice correcto: partido i → slot rounds[r+1][Math.floor(i/2)] */
+  const boxState = (r, slotIndex) => {
+    const id = rounds[r][slotIndex];
+    if (id == null) return 'empty';
+    const matchIndex = Math.floor(slotIndex / 2);
+    const nextRound = rounds[r + 1];
+    if (!nextRound) return 'active';
+    const winner = nextRound[matchIndex];
+    if (winner == null) return 'active';
+    return teamsEqual(winner, id) ? 'win' : 'elim';
+  };
+
+  return (
+    <div style={{ overflowX:'auto', overflowY:'auto', maxHeight:'75vh', padding:'8px 4px 16px' }}>
+      {/* ✅ FIX #6 — zoom aplicado con transform: scale() */}
+      <div
+        className="bracket-zoomable"
+        id="bracket-print-area"
+        style={{
+          position:'relative',
+          width: layout.width * zoom,
+          height: layout.height * zoom,
+          margin:'0 auto',
+          minWidth: layout.width * zoom,
+          transformOrigin: 'top left',
+        }}
+      >
+        <div style={{ transform:`scale(${zoom})`, transformOrigin:'top left', width:layout.width, height:layout.height, position:'relative' }}>
+          {/* Conectores SVG */}
+          <svg width={layout.width} height={layout.height}
+               style={{ position:'absolute', left:0, top:0, pointerEvents:'none' }}>
+            {layout.connectors.map((cn, k) => (
+              <path key={k} d={cn.path} fill="none"
+                    stroke={cn.decided ? PAL.win.border : '#23234a'}
+                    strokeWidth={cn.decided ? 2.4 : 1.6} strokeLinejoin="round" />
+            ))}
+          </svg>
+
+          {/* Encabezados de ronda */}
+          {layout.headers.map((h, k) => (
+            <div key={'h' + k} style={{ position:'absolute', left:h.x, top:4, width:BOX_W, textAlign:'center',
+              fontSize:11, fontWeight:800, letterSpacing:1, color:'#55557e', textTransform:'uppercase' }}>{h.name}</div>
+          ))}
+
+          {/* Partidos */}
+          {layout.matches.map((mt) => {
+            const topId = rounds[mt.r][mt.i * 2];
+            const botId = rounds[mt.r][mt.i * 2 + 1];
+            const available = topId != null && botId != null;
+            const topSide = mt.side === 'C' ? 'L' : mt.side;
+            const botSide = mt.side === 'C' ? 'R' : mt.side;
+            const topY = mt.cy - MATCH_H / 2;
+            const onClick = available ? () => onPickMatch(mt.r, mt.i) : undefined;
+            return (
+              <React.Fragment key={mt.r + '-' + mt.i}>
+                <TeamBox x={mt.x} y={topY} id={topId} side={topSide}
+                         state={boxState(mt.r, mt.i * 2)} teamValues={teamValues} onClick={onClick} />
+                <TeamBox x={mt.x} y={topY + TEAM_H + TEAM_GAP} id={botId} side={botSide}
+                         state={boxState(mt.r, mt.i * 2 + 1)} teamValues={teamValues} onClick={onClick} />
+              </React.Fragment>
+            );
+          })}
+
+          {/* Caja de Campeón */}
+          <ChampionBox layout={layout} championId={rounds[R - 1][0]} teamValues={teamValues} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChampionBox({ layout, championId, teamValues }) {
+  const c = championId != null ? PAL.champ : PAL.empty;
+  return (
+    <div style={{ position:'absolute', left:layout.champ.x, top:layout.champ.y, width:BOX_W, height:TEAM_H + 8,
+      background:c.bg, border:`2px ${championId != null ? 'solid' : 'dashed'} ${c.border}`, borderRadius:10,
+      display:'flex', alignItems:'center', gap:8, padding:'0 12px', color:c.text, fontWeight:800,
+      animation: championId != null ? 'glow 2.4s ease-in-out infinite' : 'none' }}>
+      <span style={{ fontSize:18 }}>🏆</span>
+      {championId != null
+        ? <TeamLabel id={championId} teamValues={teamValues} />
+        : <span style={{ fontSize:13, fontWeight:700 }}>Campeón</span>}
+    </div>
+  );
+}
+
+/* ---- Cálculo del layout ---- */
+function computeLayout(rounds) {
+  const R = rounds.length;
+  const N = rounds[0].length;
+  const centerCol = R - 2;
+  const totalCols = Math.max(1, 2 * (R - 2) + 1);
+  const colX = (col) => col * COL_W;
+
+  const ycLeft = [];
+  let centerY;
+  if (R - 2 >= 1) {
+    const l0 = N / 4;
+    ycLeft[0] = [];
+    for (let i = 0; i < l0; i++) ycLeft[0].push(TOP_PAD + MATCH_H / 2 + i * SLOT);
+    for (let r = 1; r <= R - 3; r++) {
+      const cnt = rounds[r].length / 4;
+      ycLeft[r] = [];
+      for (let j = 0; j < cnt; j++) ycLeft[r].push((ycLeft[r - 1][2 * j] + ycLeft[r - 1][2 * j + 1]) / 2);
+    }
+    centerY = ycLeft[R - 3][0];
+  } else {
+    centerY = TOP_PAD + MATCH_H / 2;
+  }
+
+  const pos = (r, i) => {
+    if (r === centerCol) return { col: centerCol, cy: centerY, side: 'C' };
+    const m = rounds[r].length / 2, half = m / 2;
+    if (i < half) return { col: r, cy: ycLeft[r][i], side: 'L' };
+    return { col: 2 * (R - 2) - r, cy: ycLeft[r][i - half], side: 'R' };
+  };
+
+  const matches = [];
+  for (let r = 0; r <= centerCol; r++) {
+    const m = rounds[r].length / 2;
+    for (let i = 0; i < m; i++) {
+      const p = pos(r, i);
+      matches.push({ r, i, x: colX(p.col), cy: p.cy, side: p.side });
+    }
+  }
+
+  const connectors = [];
+  for (let r = 0; r <= R - 3; r++) {
+    const m = rounds[r].length / 2;
+    for (let i = 0; i < m; i++) {
+      const p = pos(r, i);
+      let targetCol, targetCy;
+      if (r + 1 === centerCol) {
+        targetCol = centerCol;
+        targetCy = centerY + (p.side === 'L' ? -HALF_BOX : HALF_BOX);
+      } else {
+        const j = Math.floor(i / 2);
+        const tp = pos(r + 1, j);
+        targetCol = tp.col;
+        targetCy = tp.cy + (i % 2 === 0 ? -HALF_BOX : HALF_BOX);
+      }
+      let x1, x2;
+      if (p.side === 'L') { x1 = colX(p.col) + BOX_W; x2 = colX(targetCol); }
+      else { x1 = colX(p.col); x2 = colX(targetCol) + BOX_W; }
+      const y1 = p.cy, y2 = targetCy, mx = (x1 + x2) / 2;
+      /* ✅ FIX #4 — índice correcto para decidir si el conector está resuelto */
+      const winnerSlot = rounds[r + 1] ? rounds[r + 1][Math.floor(i / 1)] : null;
+      const decided = rounds[r + 1] && rounds[r + 1][i] != null;
+      connectors.push({ path: `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`, decided });
+    }
+  }
+
+  const champ = { x: colX(centerCol), y: centerY + MATCH_H / 2 + 34 };
+  connectors.push({
+    path: `M ${colX(centerCol) + BOX_W / 2} ${centerY + MATCH_H / 2} V ${champ.y}`,
+    decided: rounds[R - 1][0] != null,
+  });
+
+  const names = roundNamesFor(N);
+  const headers = [];
+  for (let col = 0; col < totalCols; col++) {
+    let r;
+    if (col === centerCol) r = R - 2;
+    else if (col < centerCol) r = col;
+    else r = 2 * (R - 2) - col;
+    headers.push({ x: colX(col), name: names[r] || '' });
+  }
+
+  const leftBottom = (R - 2 >= 1) ? (TOP_PAD + (N / 4) * SLOT) : (TOP_PAD + SLOT);
+  const champBottom = champ.y + TEAM_H + 8;
+  const height = Math.max(leftBottom, champBottom) + 24;
+  const width = totalCols * COL_W - (COL_W - BOX_W) + 8;
+
+  return { matches, connectors, headers, champ, width, height, R, centerY, centerCol };
+}
+
+/* ============================================================
+   PANEL DE RESULTADOS
+   ✅ FIX #2 — Tercer puesto ANTES de la Final (bloquea Final si hay semis y 3er no jugado)
+   ✅ FIX #6 — hasSemis legible
+   ============================================================ */
+function ResultsPanel({ bracket, teamValues, onPickThird, onPickFinal, gameDispatch }) {
+  const { rounds, semifinal_losers, tercero, cuarto } = bracket;
+  const R = rounds.length;
+  const championId = rounds[R - 1][0];
+  let runnerUp = null;
+  if (championId != null) {
+    const a = rounds[R - 2][0], b = rounds[R - 2][1];
+    runnerUp = teamsEqual(championId, a) ? b : a;
+  }
+  /* ✅ FIX #6 — hasSemis legible */
+  const hasSemis = R >= 3;
+  const thirdReady = semifinal_losers[0] != null && semifinal_losers[1] != null;
+  /* ✅ FIX #2 — La Final solo se puede jugar si el 3er puesto ya se definió (o no hay semis) */
+  const finalReady = !hasSemis || tercero != null;
+  const finalistsReady = rounds[R - 2][0] != null && rounds[R - 2][1] != null;
+
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, marginTop:8 }}>
+      {hasSemis && (
+        <div style={card(false)}>
+          <h3 style={panelH()}>🥉 Disputa por el 3.<sup>er</sup> puesto <span style={{ fontSize:12, color:PAL.bronze.text }}>(se juega primero)</span></h3>
+          <p style={{ margin:'0 0 14px', color:'#7a7aa0', fontSize:12.5 }}>Entre los perdedores de semifinal. Debe resolverse antes de la Final.</p>
+          {!thirdReady ? (
+            <div style={emptyNote()}>Pendiente: aún no se definen los perdedores de semifinal.</div>
+          ) : (
+            <div
+              onClick={() => onPickThird()}
+              style={{ cursor: tercero != null ? 'default' : 'pointer', display:'flex', flexDirection:'column', gap:8 }}
+              title={tercero == null ? 'Elegir 3.er puesto' : undefined}>
+              {[0, 1].map(k => {
+                const id = semifinal_losers[k];
+                const isThird = tercero != null && teamsEqual(id, tercero);
+                const isFourth = cuarto != null && teamsEqual(id, cuarto);
+                const c = isThird ? PAL.bronze : isFourth ? PAL.elim : (k === 0 ? PAL.blue : PAL.red);
+                return (
+                  <div key={k} style={{ background:c.bg, border:`2px solid ${c.border}`, borderRadius:9,
+                    padding:'10px 12px', color:c.text, display:'flex', justifyContent:'space-between',
+                    alignItems:'center', opacity: isFourth ? .6 : 1, fontWeight:700 }}>
+                    <TeamLabel id={id} teamValues={teamValues} dim={isFourth} />
+                    {isThird && <span style={{ fontSize:13 }}>🥉 3.°</span>}
+                    {isFourth && <span style={{ fontSize:11, fontWeight:800 }}>4.°</span>}
+                  </div>
+                );
+              })}
+              {tercero == null && <div style={{ fontSize:12, color:'#6a6a95', textAlign:'center', marginTop:2 }}>Toca para elegir quién gana el 3.<sup>er</sup> puesto</div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ✅ FIX #2 — Final bloqueada hasta que se juegue el 3er puesto */}
+      <div style={card(false)}>
+        <h3 style={panelH()}>🏆 Final</h3>
+        {hasSemis && !finalReady && (
+          <div style={{ ...emptyNote(), marginBottom:12 }}>⚠️ Juega primero el 3.er puesto antes de la Final.</div>
+        )}
+        {!finalistsReady ? (
+          <div style={emptyNote()}>Pendiente: aún no se definen los finalistas.</div>
+        ) : championId == null ? (
+          <div
+            onClick={finalReady ? () => onPickFinal() : undefined}
+            style={{ cursor: finalReady ? 'pointer' : 'not-allowed', opacity: finalReady ? 1 : 0.5,
+              display:'flex', flexDirection:'column', gap:8 }}
+            title={finalReady ? 'Elegir campeón' : 'Completa el 3er puesto primero'}>
+            {[0, 1].map(k => {
+              const id = rounds[R - 2][k];
+              const c = k === 0 ? PAL.blue : PAL.red;
+              return (
+                <div key={k} style={{ background:c.bg, border:`2px solid ${c.border}`, borderRadius:9,
+                  padding:'10px 12px', color:c.text, display:'flex', justifyContent:'space-between',
+                  alignItems:'center', fontWeight:700 }}>
+                  <TeamLabel id={id} teamValues={teamValues} />
+                  <span style={{ fontSize:11, opacity:.7 }}>Finalista</span>
+                </div>
+              );
+            })}
+            {finalReady && <div style={{ fontSize:12, color:'#6a6a95', textAlign:'center', marginTop:2 }}>Toca para elegir al campeón</div>}
+          </div>
+        ) : (
+          <div style={{ background:PAL.champ.bg, border:`2px solid ${PAL.champ.border}`, borderRadius:9,
+            padding:'14px', color:PAL.champ.text, textAlign:'center', fontWeight:800, fontSize:15,
+            animation:'glow 2.4s ease-in-out infinite' }}>
+            🏆 <TeamLabel id={championId} teamValues={teamValues} />
+          </div>
+        )}
+      </div>
+
+      <div style={card(false)}>
+        <h3 style={panelH()}>Podio final</h3>
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <PodiumRow medal="🥇" place="1.°" id={championId} pal={PAL.champ} teamValues={teamValues} />
+          <PodiumRow medal="🥈" place="2.°" id={runnerUp} pal={PAL.silver} teamValues={teamValues} />
+          {hasSemis && <PodiumRow medal="🥉" place="3.°" id={tercero} pal={PAL.bronze} teamValues={teamValues} />}
+          {hasSemis && <PodiumRow medal="4" place="4.°" id={cuarto} pal={PAL.elim} teamValues={teamValues} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PodiumRow({ medal, place, id, pal, teamValues }) {
+  const filled = id != null;
+  const c = filled ? pal : PAL.empty;
+  return (
+    <div style={{ background:c.bg, border:`2px ${filled ? 'solid' : 'dashed'} ${c.border}`, borderRadius:9,
+      padding:'10px 12px', color:c.text, display:'flex', alignItems:'center', gap:10, fontWeight:700 }}>
+      <span style={{ fontSize:18, width:26, textAlign:'center', flexShrink:0 }}>{medal}</span>
+      <span style={{ fontSize:12, opacity:.85, width:30, flexShrink:0 }}>{place}</span>
+      {filled ? <TeamLabel id={id} teamValues={teamValues} /> : <span style={{ fontSize:13, opacity:.8 }}>—</span>}
+    </div>
+  );
+}
+
+/* ============================================================
+   APP PRINCIPAL
+   ✅ Usa useReducer (FIX #2/#9), zoom (FIX #6), export (FIX #7)
+   ============================================================ */
+function App() {
+  const initial = useMemo(() => lsLoad(), []);
+  const [mode, setMode] = useState(initial?.mode || '1 VS 1');
+  const [numTeams, setNumTeams] = useState(initial?.numTeams || 8);
+  const [teamValues, setTeamValues] = useState(initial?.teamValues || {});
+  const [modal, setModal] = useState(null);
+  const [editing, setEditing] = useState(false);
+  /* ✅ FIX #6 — zoom state */
+  const [zoom, setZoom] = useState(1);
+  /* ✅ FIX #2/#9 — reducer atómico */
+  const [game, gameDispatch] = useReducer(gameReducer, {
+    bracket: initial?.bracket || null,
+    history: [],
+  });
+  const { bracket, history } = game;
+
+  useEffect(() => {
+    lsSave({ mode, numTeams, teamValues, bracket });
+  }, [mode, numTeams, teamValues, bracket]);
+
+  const onStart = (m, n, values) => {
+    setMode(m); setNumTeams(n); setTeamValues(values);
+    gameDispatch({ type:'START', n });
+  };
+
+  const pickWinner = useCallback((r, i, winnerId) => {
+    gameDispatch({ type:'PICK_WINNER', r, i, winnerId });
+    setModal(null);
+  }, []);
+
+  const pickThird = useCallback((winnerId) => {
+    gameDispatch({ type:'PICK_THIRD', winnerId });
+    setModal(null);
+  }, []);
+
+  const undo = useCallback(() => {
+    gameDispatch({ type:'UNDO' });
+    setModal(null);
+  }, []);
+
+  const resetBracket = () => {
+    if (window.confirm('¿Reiniciar el bracket? Se borrará todo el progreso de partidos, pero los nombres se conservan.')) {
+      gameDispatch({ type:'RESET_BRACKET', n: numTeams }); setModal(null);
+    }
+  };
+
+  const newTournament = () => {
+    if (window.confirm('¿Crear un torneo nuevo? Se perderán los nombres y el progreso actuales.')) {
+      lsClear(); setMode('1 VS 1'); setNumTeams(8); setTeamValues({});
+      gameDispatch({ type:'LOAD', bracket: null });
+    }
+  };
+
+  /* ✅ FIX #7 — Exportar PNG */
+  const exportPNG = async () => {
+    const el = document.getElementById('bracket-print-area');
+    if (!el || !window.html2canvas) return alert('html2canvas no está disponible.');
+    const canvas = await html2canvas(el, { backgroundColor: PAL.bg, scale: 2 });
+    const link = document.createElement('a');
+    link.download = 'bracket.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  /* ✅ FIX #7 — Exportar PDF */
+  const exportPDF = async () => {
+    const el = document.getElementById('bracket-print-area');
+    if (!el || !window.html2canvas || !window.jspdf) return alert('Librería PDF no disponible.');
+    const canvas = await html2canvas(el, { backgroundColor: PAL.bg, scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width / 2, canvas.height / 2] });
+    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+    pdf.save('bracket.pdf');
+  };
+
+  /* ✅ FIX #7 — Imprimir */
+  const printBracket = () => window.print();
+
+  if (!bracket) return <ConfigScreen onStart={onStart} />;
+
+  const R = bracket.rounds.length;
+  const championId = bracket.rounds[R - 1][0];
+  const hasSemis = R >= 3;
+  /* ✅ FIX #2 — la Final solo se abre si el 3er puesto ya se jugó */
+  const finalReady = !hasSemis || bracket.tercero != null;
+
+  return (
+    <div style={{ maxWidth:1280, margin:'0 auto', padding:'24px 18px 60px' }}>
+      <Header compact />
+
+      {/* Barra superior */}
+      <div className="no-print" style={{ display:'flex', flexWrap:'wrap', gap:10, alignItems:'center', justifyContent:'space-between', margin:'4px 0 14px' }}>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          <Tag color={PAL.blue}>Lado azul</Tag>
+          <Tag color={PAL.red}>Lado rojo</Tag>
+          <Tag color={PAL.win}>Ganador</Tag>
+          <span style={{ fontSize:12.5, color:'#6a6a95', alignSelf:'center' }}>
+            {mode} · {numTeams} equipos · {numTeams * MODES[mode]} jugadores
+          </span>
+        </div>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {/* ✅ FIX #6 — controles de zoom */}
+          <span style={{ display:'flex', alignItems:'center', gap:4 }}>
+            <button style={ghostBtn(true, zoom <= 0.5)} disabled={zoom <= 0.5}
+              onClick={() => setZoom(z => Math.max(0.5, +(z - 0.1).toFixed(1)))}>🔍−</button>
+            <span style={{ fontSize:12, color:'#8a8ab5', minWidth:36, textAlign:'center' }}>{Math.round(zoom * 100)}%</span>
+            <button style={ghostBtn(true, zoom >= 2)} disabled={zoom >= 2}
+              onClick={() => setZoom(z => Math.min(2, +(z + 0.1).toFixed(1)))}>🔍+</button>
+            <button style={ghostBtn(true, zoom === 1)} disabled={zoom === 1}
+              onClick={() => setZoom(1)}>1:1</button>
+          </span>
+          {/* ✅ FIX #7 — exportar */}
+          <button style={ghostBtn(true, false)} onClick={exportPNG} title="Exportar como imagen PNG">📷 PNG</button>
+          <button style={ghostBtn(true, false)} onClick={exportPDF} title="Exportar como PDF">📄 PDF</button>
+          <button style={ghostBtn(true, false)} onClick={printBracket} title="Imprimir bracket">🖨️ Imprimir</button>
+          <button style={ghostBtn(true, false)} onClick={() => setEditing(true)}>Editar nombres</button>
+          <button style={ghostBtn(true, history.length === 0)} disabled={history.length === 0} onClick={undo}
+                  title={history.length === 0 ? 'No hay jugadas para deshacer' : 'Deshacer la última jugada'}>
+            ↶ Deshacer{history.length > 0 ? ` (${history.length})` : ''}
+          </button>
+          <button style={dangerBtn()} onClick={resetBracket}>Reiniciar bracket</button>
+          <button style={dangerBtn()} onClick={newTournament}>Nuevo torneo</button>
+        </div>
+      </div>
+
+      {/* Pantalla de Campeón */}
+      {championId != null && (
+        <div style={{ background:PAL.champ.bg, border:`2px solid ${PAL.champ.border}`, color:PAL.champ.text,
+          borderRadius:14, padding:'16px 20px', marginBottom:16, textAlign:'center',
+          animation:'glow 2.6s ease-in-out infinite' }}>
+          <div style={{ fontSize:13, letterSpacing:2, fontWeight:800, opacity:.85 }}>🏆 ¡CAMPEÓN DEL TORNEO! 🏆</div>
+          <div style={{ fontSize:26, fontWeight:900, marginTop:6, display:'flex', justifyContent:'center' }}>
+            <TeamLabel id={championId} teamValues={teamValues} />
+          </div>
+        </div>
+      )}
+
+      {/* Bracket */}
+      <div style={{ background:PAL.panel, border:'1px solid #181834', borderRadius:14, marginBottom:18 }}>
+        <BracketView
+          bracket={bracket}
+          teamValues={teamValues}
+          zoom={zoom}
+          onPickMatch={(r, i) => {
+            const R = bracket.rounds.length;
+            const isFinal = r === R - 2;
+            /* ✅ FIX #2 — bloquear click en la Final si 3er puesto pendiente */
+            if (isFinal && hasSemis && !finalReady) {
+              alert('⚠️ Primero se juega el 3.er puesto antes de la Final.');
+              return;
+            }
+            setModal({ type:'match', r, i });
+          }}
+        />
+      </div>
+
+      {/* Panel de resultados */}
+      <ResultsPanel
+        bracket={bracket}
+        teamValues={teamValues}
+        onPickThird={() => setModal({ type:'third' })}
+        onPickFinal={() => setModal({ type:'final' })}
+        gameDispatch={gameDispatch}
+      />
+
+      {/* Modales */}
+      {modal?.type === 'match' && (() => {
+        const r = modal.r, i = modal.i;
+        const topId = bracket.rounds[r][i * 2], botId = bracket.rounds[r][i * 2 + 1];
+        return (
+          <PickModal
+            title="¿Quién avanza?"
+            options={[{ id: topId, side:'L' }, { id: botId, side:'R' }]}
+            teamValues={teamValues}
+            onPick={(id) => pickWinner(r, i, id)}
+            onClose={() => setModal(null)} />
+        );
+      })()}
+
+      {modal?.type === 'final' && (() => {
+        const R = bracket.rounds.length;
+        const topId = bracket.rounds[R - 2][0], botId = bracket.rounds[R - 2][1];
+        return (
+          <PickModal
+            title="🏆 Final — ¿Quién es campeón?"
+            options={[{ id: topId, side:'L' }, { id: botId, side:'R' }]}
+            teamValues={teamValues}
+            onPick={(id) => pickWinner(R - 2, 0, id)}
+            onClose={() => setModal(null)} />
+        );
+      })()}
+
+      {modal?.type === 'third' && (
+        <PickModal
+          title="🥉 Disputa por el 3.er puesto"
+          subtitle="El ganador se queda con el bronce; el otro será 4.°"
+          options={[
+            { id: bracket.semifinal_losers[0], side:'L' },
+            { id: bracket.semifinal_losers[1], side:'R' },
+          ]}
+          teamValues={teamValues}
+          onPick={(id) => pickThird(id)}
+          onClose={() => setModal(null)} />
+      )}
+
+      {editing && (
+        <EditNames mode={mode} numTeams={numTeams} teamValues={teamValues}
+                   onSave={(v) => { setTeamValues(v); setEditing(false); }}
+                   onCancel={() => setEditing(false)} />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   PIEZAS DE UI
+   ============================================================ */
+function Header({ compact }) {
+  return (
+    <div style={{ textAlign:'center', marginBottom: compact ? 10 : 22 }}>
+      <h1 style={{ margin:0, fontSize: compact ? 22 : 30, fontWeight:900, letterSpacing:-.5,
+        background:'linear-gradient(90deg,#7ab8ff,#ffd700,#ff7a7a)', WebkitBackgroundClip:'text',
+        WebkitTextFillColor:'transparent', backgroundClip:'text' }}>Bracket de Torneo</h1>
+      {!compact && <p style={{ margin:'6px 0 0', color:'#6a6a95', fontSize:13.5 }}>Configura, juega y corona al campeón.</p>}
+    </div>
+  );
+}
+function Tag({ color, children }) {
+  return (
+    <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:color.text,
+      background:color.bg, border:`1px solid ${color.border}`, padding:'3px 9px', borderRadius:20, fontWeight:700 }}>
+      <span style={{ width:8, height:8, borderRadius:8, background:color.border }} />{children}
+    </span>
+  );
+}
+function card(pad = true) {
+  return { background:PAL.panel, border:'1px solid #181834', borderRadius:14, padding: pad ? '22px 22px 26px' : '18px 18px 20px' };
+}
+function sectionTitle() { return { fontSize:13, fontWeight:800, color:'#8a8ab5', letterSpacing:.5, margin:'0 0 12px', textTransform:'uppercase' }; }
+function subLabel() { return { fontSize:10.5, fontWeight:600, opacity:.7, marginTop:3 }; }
+function panelH() { return { margin:'0 0 2px', fontSize:16, fontWeight:800, color:'#e6e6f0' }; }
+function inp() {
+  return { width:'100%', background:'#06060f', border:'1px solid #242444', borderRadius:7, color:'#e6e6f0',
+    padding:'8px 10px', fontSize:13, outline:'none' };
+}
+function emptyNote() {
+  return { background:PAL.empty.bg, border:`1px dashed ${PAL.empty.border}`, borderRadius:9, padding:'14px',
+    color:PAL.empty.text, fontSize:12.5, textAlign:'center' };
+}
+function primaryBtn() {
+  return { marginTop:26, width:'100%', background:'linear-gradient(90deg,#2d6fdd,#1a4fb0)', border:'none',
+    color:'#fff', padding:'14px', borderRadius:11, fontSize:16, fontWeight:800, cursor:'pointer' };
+}
+/* ✅ FIX #1 — ghostBtn siempre recibe argumentos, nunca undefined */
+function ghostBtn(small = false, disabled = false) {
+  return { flex: small ? '0 0 auto' : 1, background: disabled ? '#0c0c1c' : '#11112a',
+    border:`1px solid ${disabled ? '#202038' : '#2a2a4a'}`, color: disabled ? '#4a4a6a' : '#b8b8d8',
+    padding: small ? '8px 14px' : '12px', borderRadius:9, fontSize: small ? 13 : 14, fontWeight:700,
+    cursor: disabled ? 'not-allowed' : 'pointer' };
+}
+function dangerBtn() {
+  return { background:PAL.red.bg, border:`1px solid ${PAL.red.border}`, color:PAL.red.text,
+    padding:'8px 14px', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer' };
+}
+function modalCard() {
+  return { background:PAL.panel, border:'1px solid #242448', borderRadius:16, padding:'24px', width:'100%',
+    maxWidth:440, boxShadow:'0 20px 60px rgba(0,0,0,.6)' };
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
