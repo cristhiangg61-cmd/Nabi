@@ -1,96 +1,582 @@
-# Guion de Exposición — Normas Técnicas Colombianas ISO
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expediente de ensayo — Normas ISO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#10141b;
+    --grid-line: rgba(106,155,195,0.055);
+    --panel:#171d26;
+    --panel-alt:#1c2430;
+    --panel-raised:#232c39;
+    --border:#2a3340;
+    --border-soft:#1f2733;
+    --text:#ece7da;
+    --text-dim:#97a0ad;
+    --text-faint:#5c6675;
+    --red:#c2493a;
+    --red-soft:rgba(194,73,58,0.14);
+    --green:#4f9370;
+    --green-soft:rgba(79,147,112,0.14);
+    --blue:#6a9bc3;
+    --blue-soft:rgba(106,155,195,0.12);
+    --font-display:'IBM Plex Sans Condensed',sans-serif;
+    --font-body:'IBM Plex Sans',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+    --script-size:1.14rem;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background-color:var(--bg);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size:34px 34px;
+    color:var(--text);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:.68rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+  }
+  .app{min-height:100vh;display:flex;flex-direction:column;max-width:1180px;margin:0 auto;}
 
-**Duración total:** 20 minutos · **~2.600 palabras** · **Ritmo:** 130 palabras/min (normal de exposición)
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:flex-end;
+    padding:26px 28px 18px;border-bottom:1px solid var(--border);
+  }
+  .topbar h1{
+    font-family:var(--font-display);font-weight:700;font-size:1.7rem;
+    margin:.35em 0 .2em;letter-spacing:.005em;
+  }
+  .topbar-sub{margin:0;color:var(--text-dim);font-size:.86rem;}
+  .topbar-sub span{color:var(--text-faint);padding:0 .4em;}
+  .topbar-audit{min-width:280px;flex:1;max-width:380px;}
+  .audit-row{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:6px;}
+  .audit-row--sub{margin-top:8px;margin-bottom:0;}
+  .audit-label{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);font-size:.68rem;}
+  .audit-value{font-family:var(--font-mono);font-weight:600;color:var(--blue);}
+  .audit-bar{height:6px;border-radius:3px;background:var(--panel-alt);border:1px solid var(--border-soft);overflow:hidden;}
+  .audit-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));width:0%;transition:width .35s ease;}
+  #auditWords{font-family:var(--font-mono);font-size:.68rem;color:var(--text-faint);}
+  .btn-ghost{
+    background:transparent;border:1px solid var(--border);color:var(--text-dim);
+    font-size:.72rem;padding:5px 10px;border-radius:5px;cursor:pointer;letter-spacing:.03em;
+    transition:border-color .15s,color .15s;
+  }
+  .btn-ghost:hover{border-color:var(--blue);color:var(--text);}
 
----
+  /* ---------- LAYOUT ---------- */
+  .layout{flex:1;display:grid;grid-template-columns:270px 1fr;}
+  body.lectern .layout{grid-template-columns:1fr;}
+  body.lectern .dossier,body.lectern .notes-panel{display:none;}
 
-## Diapositiva 1 — Portada / Bienvenida
-**Ponente:** Wendy Gómez · **Tiempo:** 1 min · **Palabras:** ~130
+  /* ---------- DOSSIER (sidebar) ---------- */
+  .dossier{border-right:1px solid var(--border);padding:16px 10px;overflow-y:auto;max-height:calc(100vh - 90px);}
+  .dossier-legend{display:flex;gap:12px;padding:2px 10px 14px;font-size:.62rem;color:var(--text-faint);font-family:var(--font-mono);flex-wrap:wrap;}
+  .dossier-legend span{display:inline-flex;align-items:center;gap:4px;}
+  .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;border:1.5px solid currentColor;}
+  .entry{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;cursor:pointer;
+    border:1px solid transparent;margin-bottom:2px;transition:background .12s,border-color .12s;
+  }
+  .entry:hover{background:var(--panel-alt);}
+  .entry.active{background:var(--panel-raised);border-color:var(--border);}
+  .entry.active .entry-code{color:var(--blue);}
+  .entry-code{font-family:var(--font-mono);font-size:.72rem;color:var(--text-faint);width:26px;flex-shrink:0;}
+  .entry-main{flex:1;min-width:0;}
+  .entry-title{font-size:.78rem;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .entry-meta{display:flex;gap:6px;align-items:center;margin-top:2px;}
+  .entry-ponente{font-size:.66rem;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .entry-time{font-family:var(--font-mono);font-size:.64rem;color:var(--text-dim);flex-shrink:0;}
+  .entry-tag{font-size:.56rem;font-family:var(--font-mono);color:var(--blue);border:1px solid var(--blue-soft);background:var(--blue-soft);padding:1px 4px;border-radius:3px;flex-shrink:0;letter-spacing:.04em;}
+  .entry-stamp{width:16px;height:16px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;border:1.5px solid var(--text-faint);color:var(--text-faint);}
+  .entry-stamp.ontime{border-color:var(--green);color:var(--green);}
+  .entry-stamp.late{border-color:var(--red);color:var(--red);}
 
-Buenos días a todos. Hoy vamos a hablarles de un tema clave para cualquier organización que quiera trabajar de forma segura, ordenada y responsable: las Normas Técnicas Colombianas ISO. A lo largo de esta exposición revisaremos tres normas internacionales con enfoques distintos pero complementarios. La ISO 45001, centrada en la seguridad y salud en el trabajo. La ISO 31000, que orienta la gestión del riesgo en cualquier tipo de organización. Y la ISO 26000, que guía el comportamiento ético y la responsabilidad social. Para cada una veremos su propósito, su campo de aplicación y un caso de éxito real y verificable. Este trabajo fue elaborado por nueve integrantes, y nuestro objetivo es que al terminar comprendan cómo estas tres normas, aunque diferentes, comparten un mismo espíritu: la mejora continua. Empecemos.
+  /* ---------- STAGE (main) ---------- */
+  .stage{padding:26px 32px 40px;overflow-y:auto;max-height:calc(100vh - 90px);position:relative;}
+  body.lectern .stage{max-width:820px;margin:0 auto;padding-top:34px;}
+  .stage-inner{animation:stageIn .28s ease both;}
+  @keyframes stageIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
----
+  .banner{position:relative;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:22px;}
+  .banner-eyebrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .banner-title{font-family:var(--font-display);font-weight:700;font-size:1.5rem;margin:0 0 6px;letter-spacing:.005em;}
+  .banner-ponente{display:flex;align-items:baseline;gap:8px;margin-bottom:10px;}
+  .banner-ponente-label{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);}
+  .banner-ponente-name{font-family:var(--font-display);font-weight:600;font-size:1.05rem;color:var(--blue);}
+  .banner-meta{display:flex;gap:10px;flex-wrap:wrap;}
+  .meta-pill{font-family:var(--font-mono);font-size:.68rem;color:var(--text-dim);border:1px solid var(--border);padding:2px 8px;border-radius:20px;}
+  .meta-pill.tag{color:var(--blue);border-color:var(--blue-soft);background:var(--blue-soft);}
 
-## Diapositiva 2 — Objetivo de la exposición
-**Ponente:** Wendy Gómez · **Tiempo:** 1.5 min · **Palabras:** ~195
+  /* stamp */
+  .stamp{
+    position:absolute;top:-10px;right:0px;width:106px;height:106px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;border:3px solid var(--c);
+    transform:rotate(-9deg) scale(1);mix-blend-mode:multiply;opacity:.88;
+    animation:stampIn .4s cubic-bezier(.34,1.56,.64,1) both;pointer-events:none;
+  }
+  .stamp::before{content:'';position:absolute;inset:7px;border:1px solid var(--c);border-radius:50%;}
+  .stamp span{font-family:var(--font-mono);font-weight:700;font-size:10px;letter-spacing:.07em;text-transform:uppercase;text-align:center;color:var(--c);line-height:1.25;padding:0 10px;}
+  @keyframes stampIn{from{transform:rotate(-9deg) scale(0);opacity:0;}to{transform:rotate(-9deg) scale(1);opacity:.88;}}
 
-El objetivo central de esta exposición es reconocer el propósito, el campo de aplicación y la utilidad de estas normas ISO, relacionándolas con situaciones reales de las organizaciones. Antes de entrar en cada norma, conviene aclarar qué es exactamente una norma ISO. Una norma ISO es un acuerdo internacional documentado que fija especificaciones o criterios para que un producto, un proceso, un servicio o un sistema de gestión cumpla su propósito de forma segura, coherente y confiable, sin importar el país donde se aplique. Es, en otras palabras, un lenguaje común que permite que una empresa en Colombia, una en Francia y una en España hablen de calidad, riesgo o seguridad de la misma manera. En esta presentación veremos tres cosas concretas: primero, tres normas ISO con enfoques distintos y complementarios entre sí; segundo, para cada una revisaremos su nombre, su propósito y su campo de aplicación; y tercero, mostraremos un caso real y verificable que evidencia su impacto en una organización. Con esta estructura buscamos que ustedes no solo memoricen definiciones, sino que entiendan por qué estas normas importan en la práctica.
+  /* timer widget */
+  .timer-box{
+    display:flex;align-items:center;gap:22px;flex-wrap:wrap;background:var(--panel);
+    border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:22px;
+  }
+  .timer-display{display:flex;flex-direction:column;gap:6px;min-width:150px;}
+  .timer-digits{font-family:var(--font-mono);font-weight:600;font-size:2rem;letter-spacing:.02em;color:var(--text);}
+  .timer-digits.over{color:var(--red);}
+  .timer-target{font-family:var(--font-mono);font-size:.68rem;color:var(--text-faint);}
+  .timer-bar{width:100%;height:5px;border-radius:3px;background:var(--panel-alt);border:1px solid var(--border-soft);overflow:hidden;margin-top:2px;}
+  .timer-bar-fill{height:100%;background:var(--blue);width:0%;transition:width .3s linear;}
+  .timer-bar-fill.over{background:var(--red);}
+  .timer-controls{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;}
+  .btn{
+    font-family:var(--font-mono);font-size:.72rem;letter-spacing:.03em;padding:8px 14px;border-radius:6px;
+    border:1px solid var(--border);background:var(--panel-alt);color:var(--text);cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:border-color .15s,background .15s;
+  }
+  .btn:hover{border-color:var(--blue);}
+  .btn.primary{background:var(--blue-soft);border-color:var(--blue);color:var(--text);}
+  .btn.seal{background:var(--green-soft);border-color:var(--green);}
+  .btn.seal:hover{border-color:var(--green);}
+  .btn.reset:hover{border-color:var(--red);}
 
----
+  /* script text */
+  .script-toolbar{display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px;}
+  .script-toolbar button{
+    width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--panel-alt);
+    color:var(--text-dim);cursor:pointer;font-family:var(--font-mono);font-size:.78rem;
+  }
+  .script-toolbar button:hover{border-color:var(--blue);color:var(--text);}
+  .script-text{font-size:var(--script-size);line-height:1.85;color:var(--text);}
+  .script-text p{margin:0 0 1.2em;}
+  .script-text p:last-child{margin-bottom:0;}
 
-## Diapositiva 3 — Panorama general: tres normas, tres enfoques
-**Ponente:** Wendy Gómez · **Tiempo:** 2 min · **Palabras:** ~260
+  .stage-nav{display:flex;justify-content:space-between;align-items:center;margin-top:30px;padding-top:18px;border-top:1px solid var(--border);}
+  .stage-nav button{
+    font-family:var(--font-mono);font-size:.74rem;padding:9px 16px;border-radius:6px;border:1px solid var(--border);
+    background:var(--panel-alt);color:var(--text);cursor:pointer;
+  }
+  .stage-nav button:hover:not(:disabled){border-color:var(--blue);}
+  .stage-nav button:disabled{opacity:.35;cursor:not-allowed;}
+  .stage-nav-count{font-family:var(--font-mono);font-size:.68rem;color:var(--text-faint);}
 
-Antes de profundizar en cada norma individualmente, quiero mostrarles el panorama completo, porque ninguna de estas normas exige un único modelo rígido: las tres se adaptan al tamaño, al sector y al contexto de cada organización. La primera es la ISO 45001, publicada en 2018, que se enfoca en la seguridad y salud en el trabajo. Su función es prevenir lesiones y enfermedades laborales, creando lugares de trabajo seguros para los colaboradores. La segunda es la ISO 31000, también de 2018, centrada en la gestión del riesgo. Es una guía para identificar, analizar y tratar cualquier tipo de riesgo organizacional, ya sea financiero, operativo, tecnológico o estratégico. Y la tercera es la ISO 26000, publicada en 2010, enfocada en la responsabilidad social. Esta norma orienta un comportamiento ético y transparente de la organización hacia la sociedad y el ambiente. Lo interesante es que estas tres normas no compiten entre sí, sino que se complementan: una organización puede, por ejemplo, certificar su sistema de seguridad bajo la ISO 45001, usar la ISO 31000 como marco transversal para gestionar todos sus riesgos, incluidos los de seguridad, y guiarse por la ISO 26000 para asegurarse de que su actuación sea socialmente responsable frente a sus trabajadores, sus clientes y su comunidad. A continuación, vamos a profundizar en cada una de ellas, empezando por la ISO 45001, con su nombre completo, su propósito y su campo de aplicación, y después revisando el caso real de una empresa que la implementó.
+  /* ---------- NOTES ---------- */
+  .notes-panel{border-top:1px solid var(--border);padding:16px 28px 22px;}
+  .notes-panel summary{
+    cursor:pointer;font-family:var(--font-display);font-weight:600;font-size:.92rem;
+    list-style:none;display:flex;align-items:center;gap:8px;color:var(--text-dim);
+  }
+  .notes-panel summary::-webkit-details-marker{display:none;}
+  .notes-panel summary::before{content:'▸';color:var(--blue);transition:transform .15s;font-size:.72rem;}
+  .notes-panel[open] summary::before{transform:rotate(90deg);}
+  .notes-panel ul{margin:14px 0 0;padding-left:20px;color:var(--text-dim);font-size:.84rem;line-height:1.65;}
+  .notes-panel li{margin-bottom:6px;}
+  .notes-highlight{
+    margin:14px 0 0;padding:10px 14px;background:var(--panel-alt);border-left:3px solid var(--blue);
+    border-radius:0 6px 6px 0;font-size:.82rem;color:var(--text-dim);
+  }
 
----
+  @media (max-width:860px){
+    .layout{grid-template-columns:1fr;}
+    .dossier{display:flex;overflow-x:auto;overflow-y:hidden;max-height:none;border-right:none;border-bottom:1px solid var(--border);gap:4px;padding:12px 10px;}
+    .dossier-legend{display:none;}
+    .entry{min-width:190px;flex-shrink:0;}
+    .stage{max-height:none;padding:22px 18px 34px;}
+    .topbar{padding:20px 18px 16px;}
+    .notes-panel{padding:16px 18px 20px;}
+    .timer-controls{margin-left:0;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .stage-inner,.stamp{animation:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
 
-## Diapositiva 4 — ISO 45001: nombre, propósito y campo de aplicación
-**Ponente:** José Julián Briñez · **Tiempo:** 2 min · **Palabras:** ~260
+  <div class="topbar">
+    <div class="topbar-id">
+      <div class="eyebrow">Expediente de ensayo · 9 ponentes</div>
+      <h1>Normas Técnicas Colombianas ISO</h1>
+      <p class="topbar-sub">ISO 45001<span>·</span>ISO 31000<span>·</span>ISO 26000 — exposición de 20&nbsp;minutos</p>
+    </div>
+    <div class="topbar-audit">
+      <div class="audit-row">
+        <span class="audit-label">Tiempo ensayado</span>
+        <span class="audit-value" id="auditTime">00:00 / 20:00</span>
+      </div>
+      <div class="audit-bar"><div class="audit-bar-fill" id="auditFill"></div></div>
+      <div class="audit-row audit-row--sub">
+        <span id="auditWords">Palabras selladas: 0 / 2600</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-ghost" id="resetAllBtn" type="button">Reiniciar auditoría</button>
+          <button class="btn-ghost" id="lecternToggle" type="button">Modo atril</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-Gracias, Wendy. Vamos a hablar ahora de la ISO 45001:2018, publicada en marzo de 2018, cuyo nombre completo es "Sistemas de gestión de la seguridad y salud en el trabajo — Requisitos con orientación para su uso". A diferencia de la ISO 31000 y la ISO 26000, que veremos más adelante, esta norma sí es certificable, lo que significa que una organización puede auditarse y obtener formalmente esa certificación. Su propósito tiene tres ejes principales. El primero es prevenir lesiones, enfermedades y muertes relacionadas con el trabajo. El segundo es proporcionar lugares de trabajo seguros y saludables, gestionando los riesgos de forma proactiva, es decir, anticipándose a los problemas antes de que ocurran, en lugar de reaccionar después de un accidente. Y el tercero es mejorar continuamente el desempeño en seguridad y salud ocupacional, lo que en la práctica se conoce como SST. En cuanto a su campo de aplicación, esta norma aplica a cualquier organización, sin importar su tamaño, tipo o actividad económica. Es especialmente utilizada en sectores como la manufactura, la construcción, el transporte, la energía, la minería y, como veremos en el siguiente caso, el sector automotriz. La norma aborda todos los peligros que están bajo control de la organización: desde la maquinaria y los procesos industriales, hasta factores psicosociales, e incluso la seguridad de contratistas y visitantes que ingresan a las instalaciones. Ahora, mi compañera Isabella les va a mostrar un caso real de una empresa que aplicó esta norma con resultados muy concretos.
+  <div class="layout">
+    <nav class="dossier" id="dossier" aria-label="Lista de diapositivas">
+      <div class="dossier-legend">
+        <span><i class="legend-dot" style="color:var(--text-faint)"></i>Pendiente</span>
+        <span><i class="legend-dot" style="color:var(--green)"></i>En tiempo</span>
+        <span><i class="legend-dot" style="color:var(--red)"></i>Fuera de tiempo</span>
+      </div>
+      <div id="dossierList"></div>
+    </nav>
 
----
+    <main class="stage" id="stage"></main>
+  </div>
 
-## Diapositiva 5 — ISO 45001: Caso de éxito, Audi México
-**Ponente:** Isabella Ramos · **Tiempo:** 2 min · **Palabras:** ~260
+  <details class="notes-panel" open>
+    <summary>Notas para el ensayo</summary>
+    <ul>
+      <li>Practiquen con cronómetro por diapositiva, no solo el total. Si una diapositiva se les va de tiempo, es más fácil detectar cuál que ajustar los 20 minutos de una sola vez.</li>
+      <li>Las transiciones ("Gracias, [nombre]…") están escritas en el guion para que los cambios de ponente se sientan naturales y no haya silencios muertos entre uno y otro.</li>
+      <li>La diapositiva 12 (referencias) no necesita leerse completa — es solo para que el público sepa que las fuentes están ahí; con la mención breve basta.</li>
+      <li>Al terminar de ensayar una diapositiva, séllenla: el sello queda en verde si no se pasaron del tiempo asignado, y en rojo si se pasaron.</li>
+    </ul>
+    <p class="notes-highlight">Margen de tiempo: si van sobrados, el margen más fácil de estirar sin perder ritmo está en las diapositivas 3, 5, 7, 10 y 11 (las de mayor desarrollo, marcadas como "ajustable"). Si van cortos de tiempo, esas mismas son las que más se pueden resumir.</p>
+  </details>
 
-Gracias, José Julián. El caso que les voy a presentar es el de Audi México, específicamente la planta armadora ubicada en San José Chiapa, Puebla, que es la fabricante única del modelo Q5 fuera de Alemania. El problema o la necesidad que enfrentaba esta planta era garantizar la seguridad de miles de colaboradores en un entorno de alta complejidad industrial, un reto que se hizo aún más difícil durante la pandemia de COVID-19, cuando la seguridad sanitaria se sumó a la seguridad industrial tradicional. Para responder a esto, la planta certificó su Sistema de Gestión de Seguridad y Salud en el Trabajo bajo la norma ISO 45001:2018. Este proceso no fue sencillo: tuvieron que superar cinco auditorías internas específicas, centradas en distintos procesos de seguridad industrial, antes de obtener la certificación. El resultado fue muy significativo. En febrero de 2022, Audi México se convirtió en la primera planta de todo el Grupo Audi en el mundo en obtener esta certificación. Esto no solo representó un logro interno, sino que reforzó su imagen como una empresa segura y comprometida con sus colaboradores, algo que en un sector tan competitivo como el automotriz genera confianza tanto en los trabajadores como en los clientes e inversionistas. Este caso muestra claramente cómo una norma que en el papel parece solo un conjunto de requisitos técnicos, en la práctica se traduce en decisiones concretas que protegen vidas y fortalecen la reputación de una organización. Ahora pasamos a la segunda norma: la ISO 31000, sobre gestión del riesgo.
+</div>
 
----
+<script>
+(function(){
+  "use strict";
 
-## Diapositiva 6 — ISO 31000: nombre, propósito y campo de aplicación
-**Ponente:** Cristhian Gaitán · **Tiempo:** 2 min · **Palabras:** ~260
+  var STRETCH = [3,5,7,10,11];
 
-Gracias, Isabella. Hablemos ahora de la ISO 31000:2018, en su segunda edición, publicada también en 2018, cuyo nombre es "Gestión del riesgo — Directrices". Es importante aclarar algo desde el inicio: a diferencia de la ISO 45001, esta norma no es certificable. Es una guía de directrices, lo que significa que ninguna organización puede decir que está "certificada" en ISO 31000; lo que puede decir es que aplica sus principios y su metodología. El propósito de esta norma tiene varios componentes. Primero, brindar principios y directrices genéricas para gestionar cualquier tipo de riesgo de forma sistemática y transparente, sin importar si se trata de un riesgo financiero, operativo, tecnológico o reputacional. Segundo, ayudar a integrar la gestión del riesgo en la toma de decisiones, tanto estratégicas como operativas del día a día. Y tercero, aumentar la probabilidad de que la organización alcance sus objetivos, fortaleciendo lo que se conoce como resiliencia organizacional, es decir, su capacidad de adaptarse y recuperarse frente a los imprevistos. En cuanto a su campo de aplicación, esta norma es aplicable a cualquier organización, ya sea pública, privada o social, sin importar su tamaño o sector. Cubre absolutamente toda la vida de la organización: su estrategia, sus operaciones, sus proyectos, sus productos e incluso su comunicación. Además, sirve como referencia para integrar la gestión del riesgo en otros sistemas ya certificados, como los de calidad, ambiente o seguridad y salud en el trabajo que acabamos de ver. Mi compañera Laura les va a mostrar ahora un caso donde esto se aplicó a gran escala.
+  var slides = [
+    { n:1, title:"Portada / Bienvenida", ponente:"Wendy Gómez", tiempo:60, palabras:130,
+      texto:[
+        "Buenos días a todos. Hoy vamos a hablarles de un tema clave para cualquier organización que quiera trabajar de forma segura, ordenada y responsable: las Normas Técnicas Colombianas ISO.",
+        "A lo largo de esta exposición revisaremos tres normas internacionales con enfoques distintos pero complementarios. La ISO 45001, centrada en la seguridad y salud en el trabajo. La ISO 31000, que orienta la gestión del riesgo en cualquier tipo de organización. Y la ISO 26000, que guía el comportamiento ético y la responsabilidad social.",
+        "Para cada una veremos su propósito, su campo de aplicación y un caso de éxito real y verificable. Este trabajo fue elaborado por nueve integrantes, y nuestro objetivo es que al terminar comprendan cómo estas tres normas, aunque diferentes, comparten un mismo espíritu: la mejora continua. Empecemos."
+      ]},
+    { n:2, title:"Objetivo de la exposición", ponente:"Wendy Gómez", tiempo:90, palabras:195,
+      texto:[
+        "El objetivo central de esta exposición es reconocer el propósito, el campo de aplicación y la utilidad de estas normas ISO, relacionándolas con situaciones reales de las organizaciones.",
+        "Antes de entrar en cada norma, conviene aclarar qué es exactamente una norma ISO. Una norma ISO es un acuerdo internacional documentado que fija especificaciones o criterios para que un producto, un proceso, un servicio o un sistema de gestión cumpla su propósito de forma segura, coherente y confiable, sin importar el país donde se aplique. Es, en otras palabras, un lenguaje común que permite que una empresa en Colombia, una en Francia y una en España hablen de calidad, riesgo o seguridad de la misma manera.",
+        "En esta presentación veremos tres cosas concretas: primero, tres normas ISO con enfoques distintos y complementarios entre sí; segundo, para cada una revisaremos su nombre, su propósito y su campo de aplicación; y tercero, mostraremos un caso real y verificable que evidencia su impacto en una organización. Con esta estructura buscamos que ustedes no solo memoricen definiciones, sino que entiendan por qué estas normas importan en la práctica."
+      ]},
+    { n:3, title:"Panorama general: tres normas, tres enfoques", ponente:"Wendy Gómez", tiempo:120, palabras:260,
+      texto:[
+        "Antes de profundizar en cada norma individualmente, quiero mostrarles el panorama completo, porque ninguna de estas normas exige un único modelo rígido: las tres se adaptan al tamaño, al sector y al contexto de cada organización.",
+        "La primera es la ISO 45001, publicada en 2018, que se enfoca en la seguridad y salud en el trabajo. Su función es prevenir lesiones y enfermedades laborales, creando lugares de trabajo seguros para los colaboradores.",
+        "La segunda es la ISO 31000, también de 2018, centrada en la gestión del riesgo. Es una guía para identificar, analizar y tratar cualquier tipo de riesgo organizacional, ya sea financiero, operativo, tecnológico o estratégico.",
+        "Y la tercera es la ISO 26000, publicada en 2010, enfocada en la responsabilidad social. Esta norma orienta un comportamiento ético y transparente de la organización hacia la sociedad y el ambiente.",
+        "Lo interesante es que estas tres normas no compiten entre sí, sino que se complementan: una organización puede, por ejemplo, certificar su sistema de seguridad bajo la ISO 45001, usar la ISO 31000 como marco transversal para gestionar todos sus riesgos, incluidos los de seguridad, y guiarse por la ISO 26000 para asegurarse de que su actuación sea socialmente responsable frente a sus trabajadores, sus clientes y su comunidad.",
+        "A continuación, vamos a profundizar en cada una de ellas, empezando por la ISO 45001, con su nombre completo, su propósito y su campo de aplicación, y después revisando el caso real de una empresa que la implementó."
+      ]},
+    { n:4, title:"ISO 45001: nombre, propósito y campo de aplicación", ponente:"José Julián Briñez", tiempo:120, palabras:260,
+      texto:[
+        "Gracias, Wendy. Vamos a hablar ahora de la ISO 45001:2018, publicada en marzo de 2018, cuyo nombre completo es «Sistemas de gestión de la seguridad y salud en el trabajo — Requisitos con orientación para su uso».",
+        "A diferencia de la ISO 31000 y la ISO 26000, que veremos más adelante, esta norma sí es certificable, lo que significa que una organización puede auditarse y obtener formalmente esa certificación.",
+        "Su propósito tiene tres ejes principales. El primero es prevenir lesiones, enfermedades y muertes relacionadas con el trabajo. El segundo es proporcionar lugares de trabajo seguros y saludables, gestionando los riesgos de forma proactiva, es decir, anticipándose a los problemas antes de que ocurran, en lugar de reaccionar después de un accidente. Y el tercero es mejorar continuamente el desempeño en seguridad y salud ocupacional, lo que en la práctica se conoce como SST.",
+        "En cuanto a su campo de aplicación, esta norma aplica a cualquier organización, sin importar su tamaño, tipo o actividad económica. Es especialmente utilizada en sectores como la manufactura, la construcción, el transporte, la energía, la minería y, como veremos en el siguiente caso, el sector automotriz.",
+        "La norma aborda todos los peligros que están bajo control de la organización: desde la maquinaria y los procesos industriales, hasta factores psicosociales, e incluso la seguridad de contratistas y visitantes que ingresan a las instalaciones. Ahora, mi compañera Isabella les va a mostrar un caso real de una empresa que aplicó esta norma con resultados muy concretos."
+      ]},
+    { n:5, title:"ISO 45001 · Caso de éxito — Audi México", ponente:"Isabella Ramos", tiempo:120, palabras:260,
+      texto:[
+        "Gracias, José Julián. El caso que les voy a presentar es el de Audi México, específicamente la planta armadora ubicada en San José Chiapa, Puebla, que es la fabricante única del modelo Q5 fuera de Alemania.",
+        "El problema o la necesidad que enfrentaba esta planta era garantizar la seguridad de miles de colaboradores en un entorno de alta complejidad industrial, un reto que se hizo aún más difícil durante la pandemia de COVID-19, cuando la seguridad sanitaria se sumó a la seguridad industrial tradicional.",
+        "Para responder a esto, la planta certificó su Sistema de Gestión de Seguridad y Salud en el Trabajo bajo la norma ISO 45001:2018. Este proceso no fue sencillo: tuvieron que superar cinco auditorías internas específicas, centradas en distintos procesos de seguridad industrial, antes de obtener la certificación.",
+        "El resultado fue muy significativo. En febrero de 2022, Audi México se convirtió en la primera planta de todo el Grupo Audi en el mundo en obtener esta certificación. Esto no solo representó un logro interno, sino que reforzó su imagen como una empresa segura y comprometida con sus colaboradores, algo que en un sector tan competitivo como el automotriz genera confianza tanto en los trabajadores como en los clientes e inversionistas.",
+        "Este caso muestra claramente cómo una norma que en el papel parece solo un conjunto de requisitos técnicos, en la práctica se traduce en decisiones concretas que protegen vidas y fortalecen la reputación de una organización. Ahora pasamos a la segunda norma: la ISO 31000, sobre gestión del riesgo."
+      ]},
+    { n:6, title:"ISO 31000: nombre, propósito y campo de aplicación", ponente:"Cristhian Gaitán", tiempo:120, palabras:260,
+      texto:[
+        "Gracias, Isabella. Hablemos ahora de la ISO 31000:2018, en su segunda edición, publicada también en 2018, cuyo nombre es «Gestión del riesgo — Directrices».",
+        "Es importante aclarar algo desde el inicio: a diferencia de la ISO 45001, esta norma no es certificable. Es una guía de directrices, lo que significa que ninguna organización puede decir que está «certificada» en ISO 31000; lo que puede decir es que aplica sus principios y su metodología.",
+        "El propósito de esta norma tiene varios componentes. Primero, brindar principios y directrices genéricas para gestionar cualquier tipo de riesgo de forma sistemática y transparente, sin importar si se trata de un riesgo financiero, operativo, tecnológico o reputacional. Segundo, ayudar a integrar la gestión del riesgo en la toma de decisiones, tanto estratégicas como operativas del día a día. Y tercero, aumentar la probabilidad de que la organización alcance sus objetivos, fortaleciendo lo que se conoce como resiliencia organizacional, es decir, su capacidad de adaptarse y recuperarse frente a los imprevistos.",
+        "En cuanto a su campo de aplicación, esta norma es aplicable a cualquier organización, ya sea pública, privada o social, sin importar su tamaño o sector. Cubre absolutamente toda la vida de la organización: su estrategia, sus operaciones, sus proyectos, sus productos e incluso su comunicación.",
+        "Además, sirve como referencia para integrar la gestión del riesgo en otros sistemas ya certificados, como los de calidad, ambiente o seguridad y salud en el trabajo que acabamos de ver. Mi compañera Laura les va a mostrar ahora un caso donde esto se aplicó a gran escala."
+      ]},
+    { n:7, title:"ISO 31000 · Caso de éxito — Groupe La Poste", ponente:"Laura Serna", tiempo:120, palabras:260,
+      texto:[
+        "Gracias, Cristhian. El caso que quiero compartir con ustedes es el de Groupe La Poste, el grupo postal francés, que tiene aproximadamente doscientos cincuenta mil empleados y un modelo de negocio muy diverso que incluye correo, paquetería, banca y seguros.",
+        "La necesidad que enfrentaba este grupo era preocupante: de sus trescientas filiales, solo dos utilizaban un estándar claro de gestión de riesgos. Y esto ocurría justo cuando el grupo atravesaba una fuerte transformación digital y enfrentaba nuevas exigencias como servicio público.",
+        "Frente a esta situación, desde el año 2015 el grupo comenzó a usar las directrices de la ISO 31000 para construir un marco común de gestión del riesgo. Este marco se basó en tres pilares: el compromiso explícito de la alta dirección, la obligación de todas las filiales de considerar sus riesgos mayores, y la actualización anual de los llamados mapas de riesgo.",
+        "Los resultados fueron muy positivos. El grupo logró integrar los distintos niveles de madurez del control interno que existían entre sus filiales, creó un comité de riesgo a nivel de todo el Grupo, y consiguió una identificación de riesgos mucho más precisa. Esto le permitió, incluso, lanzar nuevos negocios con una supervisión de riesgo mejor adaptada a cada contexto.",
+        "Este caso es un excelente ejemplo de cómo una norma no certificable, que muchos podrían pensar que es «solo teoría», puede transformar la manera en que una organización de gran escala toma decisiones. Ahora vamos con la tercera y última norma: la ISO 26000, sobre responsabilidad social."
+      ]},
+    { n:8, title:"ISO 26000: nombre y propósito", ponente:"Reinel Estiven Díaz", tiempo:90, palabras:195,
+      texto:[
+        "Gracias, Laura. Hablemos de la ISO 26000:2010, conocida como la Guía de Responsabilidad Social. En Colombia, esta norma fue adoptada por ICONTEC bajo el nombre de GTC-ISO 26000.",
+        "Su propósito principal es ayudar a las organizaciones a entender qué es realmente la responsabilidad social y, sobre todo, a traducir sus principios en acciones efectivas y concretas. Es importante mencionar que, al igual que la ISO 31000, esta es una guía voluntaria y no certificable: no establece requisitos obligatorios, sino orientación y buenas prácticas que cada organización puede adoptar según su contexto.",
+        "Su enfoque busca promover un comportamiento ético y transparente que contribuya al desarrollo sostenible, incluyendo la salud y el bienestar de la sociedad en general. Un dato que refleja la seriedad de esta norma es su proceso de construcción: se desarrolló con la participación de cerca de quinientos expertos de casi cien países, y se publicó finalmente el primero de noviembre de 2010, después de un largo proceso de negociación de varios años entre gobiernos, empresas, sindicatos y organizaciones no gubernamentales.",
+        "Ahora mi compañero Juan David les va a contar sobre su campo de aplicación."
+      ]},
+    { n:9, title:"ISO 26000: campo de aplicación", ponente:"Juan David Solano", tiempo:90, palabras:195,
+      texto:[
+        "Gracias, Reinel. La ISO 26000 está pensada para todo tipo de organizaciones, sin importar su tamaño, su sector o su ubicación geográfica. Esto incluye desde multinacionales y pequeñas y medianas empresas, hasta entidades gubernamentales, organizaciones no gubernamentales, universidades y hospitales. Es decir, prácticamente cualquier tipo de organización puede beneficiarse de su guía.",
+        "Para lograr esto, la norma aborda siete materias fundamentales de la responsabilidad social. La primera es la gobernanza de la organización, es decir, cómo se toman las decisiones internamente. La segunda son los derechos humanos. La tercera, las prácticas laborales. La cuarta, el medio ambiente. La quinta, las prácticas justas de operación, que tienen que ver con la ética en los negocios. La sexta, los asuntos de consumidores. Y la séptima, la participación activa y el desarrollo de la comunidad donde opera la organización.",
+        "Como pueden ver, esta norma no se limita a un solo aspecto, sino que integra una visión completa de cómo una organización se relaciona con todos sus grupos de interés. A continuación, mi compañera Mariana les va a presentar un caso real donde esta norma se aplicó con resultados medibles."
+      ]},
+    { n:10, title:"ISO 26000 · Caso de éxito — Talgo (España)", ponente:"Mariana Muñoz", tiempo:120, palabras:260,
+      texto:[
+        "Gracias, Juan David. El caso que voy a presentar es el de Talgo, un fabricante español de trenes y material rodante, con contratos ferroviarios internacionales.",
+        "La necesidad que enfrentaba esta empresa era demostrar, de forma verificable ante clientes e inversionistas, un compromiso real con la responsabilidad social, en un sector con exigencias ambientales, sociales y de gobernanza cada vez mayores, lo que se conoce comúnmente como criterios ESG.",
+        "Para responder a esto, Talgo implementó la metodología de la Guía ISO 26000 en su gestión, y se sometió a una verificación externa bienal, es decir, cada dos años, para evaluar su nivel de cumplimiento en los principios y en las materias fundamentales de la norma que acabamos de mencionar.",
+        "Los resultados de su auditoría externa más reciente fueron muy sólidos. Talgo alcanzó un noventa y ocho por ciento de cumplimiento en principios, y un noventa y cuatro por ciento de cumplimiento en las materias fundamentales. Además, obtuvo reconocimientos adicionales de sostenibilidad: en EcoVadis logró un puntaje de sesenta y ocho sobre cien, ubicándose en el quince por ciento superior del sector ferroviario a nivel global; y en la calificación de S&P Global ESG obtuvo cuarenta y cuatro sobre cien, por encima de la media de su sector.",
+        "Este caso demuestra que aplicar la ISO 26000, aunque sea de forma voluntaria y sin certificación oficial, puede traducirse en cifras concretas y verificables que generan confianza real en el mercado. Con esto cerramos el recorrido por las tres normas, y mi compañera Zinthya les va a compartir las conclusiones finales."
+      ]},
+    { n:11, title:"Cierre y conclusiones", ponente:"Zinthya Tamara Olaya", tiempo:120, palabras:260,
+      texto:[
+        "Gracias, Mariana. Para cerrar, quiero que veamos juntos un pequeño resumen de lo que hemos revisado hoy.",
+        "La ISO 45001 se enfoca en la seguridad y salud en el trabajo, y sí es certificable. La ISO 31000 se enfoca en la gestión del riesgo, y es una guía de directrices, no certificable. Y la ISO 26000 se enfoca en la responsabilidad social, también como una guía voluntaria, no certificable.",
+        "Aunque estas tres normas abordan dimensiones completamente distintas —las personas, la incertidumbre y la sociedad—, las tres comparten un mismo espíritu de fondo: la gestión sistemática y la mejora continua. Ninguna de ellas funciona si se queda solo en el papel o en un documento archivado; su verdadero valor se demuestra cuando transforma decisiones reales dentro de una organización.",
+        "Los tres casos que revisamos hoy son la mejor prueba de esto. Audi México, en el caso de la ISO 45001, se convirtió en la primera planta del Grupo Audi en el mundo en certificarse, protegiendo a miles de colaboradores. Groupe La Poste, en el caso de la ISO 31000, logró unificar la gestión del riesgo en trescientas filiales que antes trabajaban de forma dispersa. Y Talgo, en el caso de la ISO 26000, alcanzó niveles de cumplimiento superiores al noventa por ciento, con reconocimientos internacionales de sostenibilidad.",
+        "Estos tres ejemplos nos muestran que las normas ISO no son simplemente burocracia o papeleo: son herramientas reales que, bien aplicadas, mejoran la seguridad, fortalecen la toma de decisiones y construyen organizaciones más responsables con su entorno. Muchas gracias por su atención."
+      ]},
+    { n:12, title:"Referencias bibliográficas", ponente:"Cualquier integrante (cierre breve)", tiempo:30, palabras:65,
+      texto:[
+        "Antes de terminar, dejamos en esta última diapositiva todas nuestras referencias bibliográficas: las normas oficiales ISO 45001, ISO 31000 e ISO 26000, la guía GTC-ISO 26000 de ICONTEC, y las fuentes de cada caso de éxito: Audi México, Groupe La Poste y Talgo. Todas las fuentes fueron consultadas y verificadas en agosto de 2026. Quedamos atentos a sus preguntas."
+      ]}
+  ];
 
----
+  var TOTAL_BUDGET = slides.reduce(function(a,s){return a+s.tiempo;},0);
+  var TOTAL_WORDS = slides.reduce(function(a,s){return a+s.palabras;},0);
 
-## Diapositiva 7 — ISO 31000: Caso de éxito, Groupe La Poste
-**Ponente:** Laura Serna · **Tiempo:** 2 min · **Palabras:** ~260
+  var state = slides.map(function(){ return { used:0, stamp:null }; });
+  var current = 0;
+  var timerHandle = null;
+  var runningIndex = null;
+  var fontScale = 1;
 
-Gracias, Cristhian. El caso que quiero compartir con ustedes es el de Groupe La Poste, el grupo postal francés, que tiene aproximadamente doscientos cincuenta mil empleados y un modelo de negocio muy diverso que incluye correo, paquetería, banca y seguros. La necesidad que enfrentaba este grupo era preocupante: de sus trescientas filiales, solo dos utilizaban un estándar claro de gestión de riesgos. Y esto ocurría justo cuando el grupo atravesaba una fuerte transformación digital y enfrentaba nuevas exigencias como servicio público. Frente a esta situación, desde el año 2015 el grupo comenzó a usar las directrices de la ISO 31000 para construir un marco común de gestión del riesgo. Este marco se basó en tres pilares: el compromiso explícito de la alta dirección, la obligación de todas las filiales de considerar sus riesgos mayores, y la actualización anual de los llamados mapas de riesgo. Los resultados fueron muy positivos. El grupo logró integrar los distintos niveles de madurez del control interno que existían entre sus filiales, creó un comité de riesgo a nivel de todo el Grupo, y consiguió una identificación de riesgos mucho más precisa. Esto le permitió, incluso, lanzar nuevos negocios con una supervisión de riesgo mejor adaptada a cada contexto. Este caso es un excelente ejemplo de cómo una norma no certificable, que muchos podrían pensar que es "solo teoría", puede transformar la manera en que una organización de gran escala toma decisiones. Ahora vamos con la tercera y última norma: la ISO 26000, sobre responsabilidad social.
+  function mmss(sec){
+    var sign = sec < 0 ? "−" : "";
+    var abs = Math.abs(Math.round(sec));
+    var m = Math.floor(abs/60), s = abs%60;
+    return sign + String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+  }
+  function isStretch(n){ return STRETCH.indexOf(n) !== -1; }
 
----
+  function updateHeader(){
+    var totalUsed = state.reduce(function(a,s){return a+s.used;},0);
+    var wordsSealed = slides.reduce(function(a,s,i){ return a + (state[i].stamp ? s.palabras : 0); },0);
+    document.getElementById("auditTime").textContent = mmss(totalUsed) + " / " + mmss(TOTAL_BUDGET);
+    document.getElementById("auditFill").style.width = Math.min(100, totalUsed/TOTAL_BUDGET*100) + "%";
+    document.getElementById("auditWords").textContent = "Palabras selladas: " + wordsSealed + " / " + TOTAL_WORDS;
+  }
 
-## Diapositiva 8 — ISO 26000: nombre y propósito
-**Ponente:** Reinel Estiven Díaz · **Tiempo:** 1.5 min · **Palabras:** ~195
+  function startTimer(i){
+    if(runningIndex !== null && runningIndex !== i) pauseTimer();
+    runningIndex = i;
+    if(timerHandle) return;
+    timerHandle = setInterval(function(){
+      state[runningIndex].used++;
+      updateHeader();
+      if(current === runningIndex) updateTimerUI();
+      renderDossier();
+    },1000);
+  }
+  function pauseTimer(){
+    if(timerHandle){ clearInterval(timerHandle); timerHandle = null; }
+    runningIndex = null;
+  }
+  function toggleTimer(i){
+    if(runningIndex === i) pauseTimer(); else startTimer(i);
+    renderStage();
+    renderDossier();
+  }
+  function resetSlide(i){
+    if(runningIndex === i) pauseTimer();
+    state[i] = { used:0, stamp:null };
+    renderStage();
+    renderDossier();
+    updateHeader();
+  }
+  function sealSlide(i){
+    if(runningIndex === i) pauseTimer();
+    state[i].stamp = state[i].used <= slides[i].tiempo ? "ontime" : "late";
+    renderStage();
+    renderDossier();
+    updateHeader();
+  }
+  function resetAll(){
+    if(!window.confirm("¿Reiniciar toda la auditoría de ensayo? Se borrará el tiempo y los sellos de las 12 diapositivas.")) return;
+    pauseTimer();
+    state = slides.map(function(){ return { used:0, stamp:null }; });
+    renderStage();
+    renderDossier();
+    updateHeader();
+  }
 
-Gracias, Laura. Hablemos de la ISO 26000:2010, conocida como la Guía de Responsabilidad Social. En Colombia, esta norma fue adoptada por ICONTEC bajo el nombre de GTC-ISO 26000. Su propósito principal es ayudar a las organizaciones a entender qué es realmente la responsabilidad social y, sobre todo, a traducir sus principios en acciones efectivas y concretas. Es importante mencionar que, al igual que la ISO 31000, esta es una guía voluntaria y no certificable: no establece requisitos obligatorios, sino orientación y buenas prácticas que cada organización puede adoptar según su contexto. Su enfoque busca promover un comportamiento ético y transparente que contribuya al desarrollo sostenible, incluyendo la salud y el bienestar de la sociedad en general. Un dato que refleja la seriedad de esta norma es su proceso de construcción: se desarrolló con la participación de cerca de quinientos expertos de casi cien países, y se publicó finalmente el primero de noviembre de 2010, después de un largo proceso de negociación de varios años entre gobiernos, empresas, sindicatos y organizaciones no gubernamentales. Ahora mi compañero Juan David les va a contar sobre su campo de aplicación.
+  function updateTimerUI(){
+    var s = slides[current], st = state[current];
+    var remaining = s.tiempo - st.used;
+    var digits = document.getElementById("timerDigits");
+    var bar = document.getElementById("timerBarFill");
+    if(!digits) return;
+    var over = remaining < 0;
+    digits.textContent = over ? "+" + mmss(-remaining) : mmss(remaining);
+    digits.className = "timer-digits" + (over ? " over" : "");
+    bar.style.width = Math.min(100, st.used/s.tiempo*100) + "%";
+    bar.className = "timer-bar-fill" + (over ? " over" : "");
+  }
 
----
+  function goTo(i){
+    if(i < 0 || i >= slides.length) return;
+    current = i;
+    renderStage();
+    renderDossier();
+  }
 
-## Diapositiva 9 — ISO 26000: campo de aplicación
-**Ponente:** Juan David Solano · **Tiempo:** 1.5 min · **Palabras:** ~195
+  function renderDossier(){
+    var wrap = document.getElementById("dossierList");
+    wrap.innerHTML = slides.map(function(s,i){
+      var st = state[i];
+      var stampClass = st.stamp ? " " + st.stamp : "";
+      var stampGlyph = st.stamp === "ontime" ? "✓" : (st.stamp === "late" ? "!" : "");
+      var runningDot = (runningIndex === i) ? " ▸" : "";
+      return (
+        '<div class="entry' + (i===current ? " active" : "") + '" data-index="' + i + '" role="button" tabindex="0">' +
+          '<span class="entry-code">' + String(s.n).padStart(2,"0") + '</span>' +
+          '<span class="entry-main">' +
+            '<div class="entry-title">' + escapeHtml(s.title) + runningDot + '</div>' +
+            '<div class="entry-meta">' +
+              '<span class="entry-ponente">' + escapeHtml(s.ponente) + '</span>' +
+              '<span class="entry-time">' + mmss(s.tiempo) + '</span>' +
+              (isStretch(s.n) ? '<span class="entry-tag">ajustable</span>' : '') +
+            '</div>' +
+          '</span>' +
+          '<span class="entry-stamp' + stampClass + '">' + stampGlyph + '</span>' +
+        '</div>'
+      );
+    }).join("");
+  }
 
-Gracias, Reinel. La ISO 26000 está pensada para todo tipo de organizaciones, sin importar su tamaño, su sector o su ubicación geográfica. Esto incluye desde multinacionales y pequeñas y medianas empresas, hasta entidades gubernamentales, organizaciones no gubernamentales, universidades y hospitales. Es decir, prácticamente cualquier tipo de organización puede beneficiarse de su guía. Para lograr esto, la norma aborda siete materias fundamentales de la responsabilidad social. La primera es la gobernanza de la organización, es decir, cómo se toman las decisiones internamente. La segunda son los derechos humanos. La tercera, las prácticas laborales. La cuarta, el medio ambiente. La quinta, las prácticas justas de operación, que tienen que ver con la ética en los negocios. La sexta, los asuntos de consumidores. Y la séptima, la participación activa y el desarrollo de la comunidad donde opera la organización. Como pueden ver, esta norma no se limita a un solo aspecto, sino que integra una visión completa de cómo una organización se relaciona con todos sus grupos de interés. A continuación, mi compañera Mariana les va a presentar un caso real donde esta norma se aplicó con resultados medibles.
+  function escapeHtml(str){
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
 
----
+  function renderStage(){
+    var s = slides[current], st = state[current];
+    var remaining = s.tiempo - st.used;
+    var over = remaining < 0;
+    var isRunning = runningIndex === current;
 
-## Diapositiva 10 — ISO 26000: Caso de éxito, Talgo (España)
-**Ponente:** Mariana Muñoz · **Tiempo:** 2 min · **Palabras:** ~260
+    var stampHtml = "";
+    if(st.stamp){
+      var isOn = st.stamp === "ontime";
+      stampHtml = '<div class="stamp" style="--c:' + (isOn ? "var(--green)" : "var(--red)") + '">' +
+        '<span>' + (isOn ? "En tiempo" : "Se pasó del tiempo") + '</span></div>';
+    }
 
-Gracias, Juan David. El caso que voy a presentar es el de Talgo, un fabricante español de trenes y material rodante, con contratos ferroviarios internacionales. La necesidad que enfrentaba esta empresa era demostrar, de forma verificable ante clientes e inversionistas, un compromiso real con la responsabilidad social, en un sector con exigencias ambientales, sociales y de gobernanza cada vez mayores, lo que se conoce comúnmente como criterios ESG. Para responder a esto, Talgo implementó la metodología de la Guía ISO 26000 en su gestión, y se sometió a una verificación externa bienal, es decir, cada dos años, para evaluar su nivel de cumplimiento en los principios y en las materias fundamentales de la norma que acabamos de mencionar. Los resultados de su auditoría externa más reciente fueron muy sólidos. Talgo alcanzó un noventa y ocho por ciento de cumplimiento en principios, y un noventa y cuatro por ciento de cumplimiento en las materias fundamentales. Además, obtuvo reconocimientos adicionales de sostenibilidad: en EcoVadis logró un puntaje de sesenta y ocho sobre cien, ubicándose en el quince por ciento superior del sector ferroviario a nivel global; y en la calificación de S&P Global ESG obtuvo cuarenta y cuatro sobre cien, por encima de la media de su sector. Este caso demuestra que aplicar la ISO 26000, aunque sea de forma voluntaria y sin certificación oficial, puede traducirse en cifras concretas y verificables que generan confianza real en el mercado. Con esto cerramos el recorrido por las tres normas, y mi compañera Zinthya les va a compartir las conclusiones finales.
+    var html =
+      '<div class="stage-inner">' +
+        '<div class="banner">' +
+          stampHtml +
+          '<div class="banner-eyebrow">' +
+            '<span class="eyebrow">Diapositiva ' + String(s.n).padStart(2,"0") + ' de ' + slides.length + '</span>' +
+          '</div>' +
+          '<h2 class="banner-title">' + escapeHtml(s.title) + '</h2>' +
+          '<div class="banner-ponente">' +
+            '<span class="banner-ponente-label">Ponente</span>' +
+            '<span class="banner-ponente-name">' + escapeHtml(s.ponente) + '</span>' +
+          '</div>' +
+          '<div class="banner-meta">' +
+            '<span class="meta-pill">Tiempo asignado · ' + mmss(s.tiempo) + '</span>' +
+            '<span class="meta-pill">' + s.palabras + ' palabras</span>' +
+            (isStretch(s.n) ? '<span class="meta-pill tag">Margen ajustable</span>' : '') +
+          '</div>' +
+        '</div>' +
 
----
+        '<div class="timer-box">' +
+          '<div class="timer-display">' +
+            '<div class="timer-digits' + (over ? " over" : "") + '" id="timerDigits">' + (over ? "+" + mmss(-remaining) : mmss(remaining)) + '</div>' +
+            '<div class="timer-target">de ' + mmss(s.tiempo) + ' asignados</div>' +
+            '<div class="timer-bar"><div class="timer-bar-fill' + (over ? " over" : "") + '" id="timerBarFill" style="width:' + Math.min(100, st.used/s.tiempo*100) + '%"></div></div>' +
+          '</div>' +
+          '<div class="timer-controls">' +
+            '<button class="btn primary" data-action="toggle" type="button">' + (isRunning ? "⏸ Pausar" : "▶ Iniciar") + '</button>' +
+            '<button class="btn reset" data-action="reset" type="button">↺ Reiniciar</button>' +
+            '<button class="btn seal" data-action="seal" type="button">🖋 Sellar diapositiva</button>' +
+          '</div>' +
+        '</div>' +
 
-## Diapositiva 11 — Cierre y conclusiones
-**Ponente:** Zinthya Tamara Olaya · **Tiempo:** 2 min · **Palabras:** ~260
+        '<div class="script-toolbar">' +
+          '<button data-action="font-dec" type="button" aria-label="Reducir texto">A−</button>' +
+          '<button data-action="font-inc" type="button" aria-label="Aumentar texto">A+</button>' +
+        '</div>' +
+        '<div class="script-text">' + s.texto.map(function(p){ return "<p>" + escapeHtml(p) + "</p>"; }).join("") + '</div>' +
 
-Gracias, Mariana. Para cerrar, quiero que veamos juntos un pequeño resumen de lo que hemos revisado hoy. La ISO 45001 se enfoca en la seguridad y salud en el trabajo, y sí es certificable. La ISO 31000 se enfoca en la gestión del riesgo, y es una guía de directrices, no certificable. Y la ISO 26000 se enfoca en la responsabilidad social, también como una guía voluntaria, no certificable. Aunque estas tres normas abordan dimensiones completamente distintas —las personas, la incertidumbre y la sociedad—, las tres comparten un mismo espíritu de fondo: la gestión sistemática y la mejora continua. Ninguna de ellas funciona si se queda solo en el papel o en un documento archivado; su verdadero valor se demuestra cuando transforma decisiones reales dentro de una organización. Los tres casos que revisamos hoy son la mejor prueba de esto. Audi México, en el caso de la ISO 45001, se convirtió en la primera planta del Grupo Audi en el mundo en certificarse, protegiendo a miles de colaboradores. Groupe La Poste, en el caso de la ISO 31000, logró unificar la gestión del riesgo en trescientas filiales que antes trabajaban de forma dispersa. Y Talgo, en el caso de la ISO 26000, alcanzó niveles de cumplimiento superiores al noventa por ciento, con reconocimientos internacionales de sostenibilidad. Estos tres ejemplos nos muestran que las normas ISO no son simplemente burocracia o papeleo: son herramientas reales que, bien aplicadas, mejoran la seguridad, fortalecen la toma de decisiones y construyen organizaciones más responsables con su entorno. Muchas gracias por su atención.
+        '<div class="stage-nav">' +
+          '<button data-action="prev" type="button" ' + (current===0 ? "disabled" : "") + '>← Anterior</button>' +
+          '<span class="stage-nav-count">' + String(current+1).padStart(2,"0") + ' / ' + slides.length + '</span>' +
+          '<button data-action="next" type="button" ' + (current===slides.length-1 ? "disabled" : "") + '>Siguiente →</button>' +
+        '</div>' +
+      '</div>';
 
----
+    document.getElementById("stage").innerHTML = html;
+    document.documentElement.style.setProperty("--script-size", (1.14*fontScale) + "rem");
+  }
 
-## Diapositiva 12 — Referencias bibliográficas
-**Ponente:** Cualquier integrante (mención breve de cierre) · **Tiempo:** 0.5 min · **Palabras:** ~65
+  // ---- events ----
+  document.getElementById("stage").addEventListener("click", function(e){
+    var btn = e.target.closest("[data-action]");
+    if(!btn) return;
+    var action = btn.getAttribute("data-action");
+    if(action === "toggle") toggleTimer(current);
+    else if(action === "reset") resetSlide(current);
+    else if(action === "seal") sealSlide(current);
+    else if(action === "prev") goTo(current-1);
+    else if(action === "next") goTo(current+1);
+    else if(action === "font-inc"){ fontScale = Math.min(1.5, fontScale+0.1); renderStage(); }
+    else if(action === "font-dec"){ fontScale = Math.max(0.75, fontScale-0.1); renderStage(); }
+  });
 
-Antes de terminar, dejamos en esta última diapositiva todas nuestras referencias bibliográficas: las normas oficiales ISO 45001, ISO 31000 e ISO 26000, la guía GTC-ISO 26000 de ICONTEC, y las fuentes de cada caso de éxito: Audi México, Groupe La Poste y Talgo. Todas las fuentes fueron consultadas y verificadas en agosto de 2026. Quedamos atentos a sus preguntas.
+  document.getElementById("dossier").addEventListener("click", function(e){
+    var entry = e.target.closest("[data-index]");
+    if(!entry) return;
+    goTo(parseInt(entry.getAttribute("data-index"),10));
+  });
+  document.getElementById("dossier").addEventListener("keydown", function(e){
+    if(e.key !== "Enter" && e.key !== " ") return;
+    var entry = e.target.closest("[data-index]");
+    if(!entry) return;
+    e.preventDefault();
+    goTo(parseInt(entry.getAttribute("data-index"),10));
+  });
 
----
+  document.getElementById("lecternToggle").addEventListener("click", function(){
+    var on = document.body.classList.toggle("lectern");
+    this.textContent = on ? "Salir del modo atril" : "Modo atril";
+  });
+  document.getElementById("resetAllBtn").addEventListener("click", resetAll);
 
-## Notas para el ensayo
+  document.addEventListener("keydown", function(e){
+    if(e.target.tagName === "BUTTON" || e.target.tagName === "INPUT") return;
+    if(e.key === "ArrowRight") goTo(current+1);
+    else if(e.key === "ArrowLeft") goTo(current-1);
+  });
 
-- **Practiquen con cronómetro por diapositiva**, no solo el total. Si una diapositiva se les va de tiempo, es más fácil detectar cuál que ajustar los 20 minutos de una sola vez.
-- **Las transiciones ("Gracias, [nombre]...")** están escritas en el guion para que los cambios de ponente se sientan naturales y no haya silencios muertos entre uno y otro.
-- **La diapositiva 12 (referencias) no necesita leerse completa** — es solo para que el público sepa que las fuentes están ahí; con la mención breve basta.
-- Si van sobrados de tiempo, el margen más fácil de estirar sin perder ritmo está en las diapositivas 3, 5, 7, 10 y 11 (las de mayor desarrollo). Si van cortos de tiempo, esas mismas son las que más se pueden resumir.
+  // ---- init ----
+  renderDossier();
+  renderStage();
+  updateHeader();
+})();
+</script>
+</body>
+</html>
