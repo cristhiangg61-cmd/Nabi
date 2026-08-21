@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Normas ISO 45001 · 31000 · 26000 — Exposición</title>
+<style>
+  :root{
+    --navy-950:#081521;
+    --navy-900:#0B2136;
+    --navy-800:#123049;
+    --navy-700:#1C4467;
+    --ink:#13222F;
+    --ink-soft:#54697C;
+    --line:#DEE6ED;
+    --paper:#FFFFFF;
+    --paper-tint:#F2F6F9;
+    --accent:#1E9DB0;
+    --accent-45001:#C2492B;
+    --accent-31000:#B07F0C;
+    --accent-26000:#297E52;
+    --shadow:0 24px 50px -22px rgba(8,21,33,.45), 0 6px 14px -6px rgba(8,21,33,.18);
+    --radius-lg:22px;
+    --radius-md:14px;
+    --radius-sm:9px;
+    --font-display:Georgia,'Iowan Old Style','Palatino Linotype','Book Antiqua',serif;
+    --font-body:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+    --font-mono:Consolas,'SFMono-Regular',Menlo,monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    background:
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+      radial-gradient(circle at 12% 18%, rgba(30,157,176,.16), transparent 42%),
+      radial-gradient(circle at 88% 82%, rgba(30,157,176,.12), transparent 46%),
+      linear-gradient(160deg, var(--navy-950), var(--navy-900) 55%, var(--navy-800));
+    background-size:38px 38px, 38px 38px, auto, auto, auto;
+  }
+
+  /* ---------- top progress bar ---------- */
+  .progress-track{
+    width:100%;
+    height:4px;
+    background:rgba(255,255,255,.10);
+    flex-shrink:0;
+  }
+  .progress-fill{
+    height:100%;
+    width:8.33%;
+    background:linear-gradient(90deg, var(--accent), #63D9E6);
+    transition:width .35s ease;
+  }
+
+  /* ---------- stage / viewer ---------- */
+  .viewer{
+    flex:1;
+    min-height:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:22px 16px;
+  }
+  .stage{
+    position:relative;
+    width:min(1180px, 94vw);
+    aspect-ratio:16/9;
+    max-height:100%;
+    background:var(--paper);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  @media (max-height:640px){
+    .stage{ aspect-ratio:auto; height:84vh; }
+  }
+  @media (max-width:640px){
+    .stage{ aspect-ratio:auto; width:94vw; height:86vh; border-radius:16px; }
+  }
+
+  .slide{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .32s ease, transform .32s ease;
+    transform:translateY(6px);
+  }
+  .slide.active{
+    opacity:1;
+    pointer-events:auto;
+    transform:translateY(0);
+    z-index:2;
+  }
+
+  .slide-inner{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    padding:clamp(20px,3.4vw,46px) clamp(22px,4.2vw,58px);
+    overflow-y:auto;
+  }
+  .slide-content{ flex:1 1 auto; }
+
+  /* ---------- topic accent scoping ---------- */
+  .topic-45001{ --topic:var(--accent-45001); }
+  .topic-31000{ --topic:var(--accent-31000); }
+  .topic-26000{ --topic:var(--accent-26000); }
+  .topic-general{ --topic:var(--accent); }
+
+  /* ---------- typography helpers ---------- */
+  .eyebrow{
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--topic);
+    font-weight:700;
+    margin:0 0 8px;
+  }
+  .slide-title{
+    font-family:var(--font-display);
+    color:var(--navy-900);
+    font-weight:700;
+    line-height:1.14;
+    margin:0 0 .5em;
+    font-size:clamp(1.28rem,2.7vw,2.05rem);
+  }
+  .slide-sub{
+    font-size:.92rem;
+    color:var(--ink-soft);
+    line-height:1.5;
+    max-width:64ch;
+    margin:0 0 16px;
+  }
+
+  /* ---------- source / reference footer (mandatory on every slide) ---------- */
+  .source-box{
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px 12px;
+    align-items:baseline;
+    font-size:.66rem;
+    color:var(--ink-soft);
+  }
+  .source-box .source-tag{
+    font-weight:800;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--navy-700);
+    font-size:.6rem;
+  }
+  .source-box a{
+    color:var(--topic);
+    text-decoration:none;
+    border-bottom:1px dotted var(--topic);
+  }
+  .source-box a:hover{ opacity:.7; }
+  .slide--cover .source-box{ border-top-color:rgba(255,255,255,.2); color:rgba(255,255,255,.65); }
+  .slide--cover .source-box .source-tag{ color:#8FD9E3; }
+  .slide--cover .source-box a{ color:#8FD9E3; border-bottom-color:#8FD9E3; }
+
+  /* ---------- seal / certification badge (signature element) ---------- */
+  .seal{
+    position:relative;
+    width:92px;
+    height:92px;
+    border-radius:50%;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    border:3px solid var(--topic);
+    background:radial-gradient(circle at 32% 28%, #fff, var(--paper-tint));
+    box-shadow:0 10px 20px -12px rgba(8,21,33,.35);
+  }
+  .seal::before{
+    content:'';
+    position:absolute;
+    inset:7px;
+    border-radius:50%;
+    border:1.5px dashed var(--topic);
+    opacity:.55;
+  }
+  .seal-code{
+    font-family:var(--font-mono);
+    font-weight:700;
+    font-size:1rem;
+    color:var(--topic);
+    letter-spacing:.02em;
+  }
+  .seal-label{
+    font-size:.52rem;
+    letter-spacing:.2em;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    margin-top:2px;
+  }
+  .seal--mini{ width:56px; height:56px; }
+  .seal--mini .seal-code{ font-size:.68rem; }
+  .seal--mini .seal-label{ font-size:.42rem; }
+  .seal--light{ background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.18), rgba(255,255,255,.04)); }
+  .seal--light .seal-code{ color:#fff; }
+  .seal--light .seal-label{ color:rgba(255,255,255,.65); }
+
+  /* ---------- bullets ---------- */
+  .bullets{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .bullets li{
+    position:relative;
+    padding-left:20px;
+    font-size:.88rem;
+    line-height:1.48;
+    color:var(--ink);
+  }
+  .bullets li::before{
+    content:'';
+    position:absolute;
+    left:0; top:.5em;
+    width:7px; height:7px;
+    background:var(--topic);
+    transform:rotate(45deg);
+    border-radius:2px;
+  }
+
+  /* ---------- norm head (name / purpose slides) ---------- */
+  .norm-head{ display:flex; gap:18px; align-items:center; margin-bottom:16px; }
+  .norm-head .norm-full{ font-family:var(--font-display); font-weight:700; color:var(--navy-900); font-size:1.05rem; line-height:1.3; }
+  .norm-head .norm-code{ font-family:var(--font-mono); font-size:.78rem; color:var(--topic); margin-top:4px; }
+  .norm-body{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .norm-body.single{ grid-template-columns:1fr; max-width:56ch; }
+  .norm-col h4{
+    font-size:.7rem; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--topic); margin:0 0 10px; font-weight:700;
+  }
+  @media (max-width:640px){ .norm-body{ grid-template-columns:1fr; } }
+
+  /* ---------- overview cards (panorama slide) ---------- */
+  .card-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:6px; }
+  .topic-card{
+    --topic:inherit;
+    background:var(--paper-tint);
+    border-radius:var(--radius-md);
+    padding:16px 16px 14px;
+    border-top:4px solid var(--topic);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .topic-card .icon{ width:26px; height:26px; color:var(--topic); }
+  .topic-card .code{ font-family:var(--font-mono); font-size:.72rem; color:var(--topic); font-weight:700; }
+  .topic-card .name{ font-family:var(--font-display); font-weight:700; color:var(--navy-900); font-size:.98rem; }
+  .topic-card p{ margin:0; font-size:.8rem; line-height:1.4; color:var(--ink-soft); }
+  @media (max-width:640px){ .card-grid{ grid-template-columns:1fr; } }
+
+  /* ---------- case-study three-column layout ---------- */
+  .case-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:4px; }
+  .case-card{
+    background:var(--paper-tint);
+    border-radius:var(--radius-md);
+    padding:15px 16px;
+    border-top:4px solid var(--topic);
+  }
+  .case-card h4{
+    font-size:.68rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--topic); margin:0 0 8px; font-weight:800;
+  }
+  .case-card p{ margin:0; font-size:.82rem; line-height:1.44; color:var(--ink); }
+  @media (max-width:640px){ .case-grid{ grid-template-columns:1fr; } }
+
+  /* ---------- stat strip ---------- */
+  .stat-strip{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .stat{
+    flex:1; min-width:120px;
+    background:var(--navy-900);
+    color:#fff;
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    text-align:center;
+  }
+  .stat b{ display:block; font-family:var(--font-display); font-size:1.35rem; }
+  .stat span{ font-size:.6rem; letter-spacing:.05em; color:#AFC2D1; text-transform:uppercase; display:block; margin-top:2px; }
+
+  /* ---------- chips ---------- */
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    background:var(--paper-tint);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:6px 14px;
+    font-size:.72rem;
+    color:var(--navy-800);
+    font-weight:600;
+  }
+  .slide--cover .chip{
+    background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.22);
+    color:#fff;
+  }
+
+  /* ---------- 7-materias grid (ISO 26000 scope slide) ---------- */
+  .materias-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
+  .materia{
+    background:var(--paper-tint);
+    border-left:3px solid var(--topic);
+    border-radius:var(--radius-sm);
+    padding:9px 10px;
+    font-size:.74rem;
+    line-height:1.3;
+    color:var(--ink);
+  }
+  @media (max-width:760px){ .materias-grid{ grid-template-columns:repeat(2,1fr); } }
+
+  /* ---------- comparison table (closing slide) ---------- */
+  .compare-table{ width:100%; border-collapse:collapse; margin-top:8px; font-size:.82rem; }
+  .compare-table th{
+    text-align:left; background:var(--navy-900); color:#fff;
+    padding:8px 12px; font-size:.68rem; letter-spacing:.06em; text-transform:uppercase;
+  }
+  .compare-table td{ padding:9px 12px; border-bottom:1px solid var(--line); color:var(--ink); }
+  .compare-table tr:nth-child(even) td{ background:var(--paper-tint); }
+  .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:8px; }
+
+  /* ---------- lead quote (objective slide) ---------- */
+  .lead{
+    font-family:var(--font-display);
+    font-style:italic;
+    font-size:clamp(1rem,1.9vw,1.28rem);
+    line-height:1.5;
+    color:var(--navy-800);
+    border-left:4px solid var(--topic);
+    padding:4px 0 4px 18px;
+    margin:6px 0 18px;
+  }
+  .mini-steps{ display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; }
+  .mini-step{
+    flex:1; min-width:150px;
+    background:var(--paper-tint);
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    font-size:.78rem;
+    color:var(--ink);
+  }
+  .mini-step b{ display:block; color:var(--topic); font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; margin-bottom:3px; }
+
+  /* ---------- cover slide ---------- */
+  .slide--cover .slide-inner{
+    background:linear-gradient(160deg, var(--navy-950), var(--navy-800));
+    color:#fff;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    border-radius:inherit;
+  }
+  .slide--cover .eyebrow{ color:#8FD9E3; }
+  .slide--cover .cover-title{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:clamp(1.7rem,4.2vw,2.9rem);
+    line-height:1.1;
+    margin:0 0 12px;
+  }
+  .slide--cover .cover-sub{
+    font-size:.95rem;
+    color:rgba(255,255,255,.75);
+    max-width:56ch;
+    margin:0 auto 26px;
+    line-height:1.5;
+  }
+  .seal-row{ display:flex; gap:16px; justify-content:center; margin-bottom:28px; flex-wrap:wrap; }
+  .seal-item{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .seal-item span.tag{ font-size:.66rem; color:rgba(255,255,255,.6); max-width:110px; text-align:center; line-height:1.3; }
+  .integrantes-label{ font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55); margin-bottom:10px; }
+
+  /* ---------- references slide ---------- */
+  .ref-columns{ display:grid; grid-template-columns:1fr 1fr; gap:26px; margin-top:6px; }
+  .ref-group h4{
+    font-size:.7rem; letter-spacing:.09em; text-transform:uppercase; color:var(--topic);
+    margin:0 0 10px; font-weight:800; border-bottom:1px solid var(--line); padding-bottom:6px;
+  }
+  .ref-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .ref-list li{ font-size:.72rem; line-height:1.45; color:var(--ink); padding-left:14px; text-indent:-14px; }
+  .ref-list li em{ color:var(--navy-800); }
+  .ref-list a{ color:var(--accent); word-break:break-all; }
+  @media (max-width:700px){ .ref-columns{ grid-template-columns:1fr; } }
+
+  /* ---------- controls ---------- */
+  .controls{
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:14px 22px 18px;
+    max-width:1180px;
+    width:100%;
+    margin:0 auto;
+  }
+  .nav-btn{
+    font-family:var(--font-body);
+    font-size:.82rem;
+    font-weight:600;
+    color:var(--navy-900);
+    background:#fff;
+    border:1px solid rgba(255,255,255,.5);
+    border-radius:999px;
+    padding:10px 20px;
+    cursor:pointer;
+    box-shadow:0 8px 18px -10px rgba(0,0,0,.45);
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  .nav-btn:hover:not(:disabled){ transform:translateY(-1px); }
+  .nav-btn:disabled{ opacity:.35; cursor:default; }
+  .counter{ text-align:center; color:rgba(255,255,255,.85); font-size:.8rem; }
+  .counter .hint{ display:block; font-size:.64rem; color:rgba(255,255,255,.45); margin-top:2px; }
+  @media (max-width:560px){
+    .nav-btn{ padding:9px 14px; font-size:.74rem; }
+    .counter .hint{ display:none; }
+  }
+
+  /* ---------- final mobile pass (kept last so it wins the cascade) ---------- */
+  @media (max-width:640px){
+    .slide--cover .slide-inner{ justify-content:flex-start; padding-top:26px; padding-bottom:26px; }
+    .seal-row{ gap:12px; margin-bottom:18px; }
+    .seal--mini{ width:46px; height:46px; }
+    .seal--mini .seal-code{ font-size:.58rem; }
+    .seal--mini .seal-label{ font-size:.36rem; }
+    .integrantes-label{ margin-top:2px; }
+    .cover-sub{ margin-bottom:18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<main class="viewer">
+  <div class="stage" id="stage">
+
+    <!-- 1. PORTADA -->
+    <section class="slide slide--cover topic-general active" data-index="1">
+      <div class="slide-inner">
+        <div class="eyebrow">Exposición académica · Gestión de la calidad</div>
+        <h1 class="cover-title">Normas Técnicas Colombianas ISO</h1>
+        <p class="cover-sub">Propósito, campo de aplicación y casos de éxito reales de tres normas internacionales: seguridad y salud en el trabajo, gestión del riesgo y responsabilidad social.</p>
+
+        <div class="seal-row">
+          <div class="seal-item">
+            <div class="seal seal--mini seal--light" style="--topic:#E2775C;"><span class="seal-code">45001</span><span class="seal-label">ISO</span></div>
+            <span class="tag">Seguridad y Salud en el Trabajo</span>
+          </div>
+          <div class="seal-item">
+            <div class="seal seal--mini seal--light" style="--topic:#E0B84A;"><span class="seal-code">31000</span><span class="seal-label">ISO</span></div>
+            <span class="tag">Gestión del Riesgo</span>
+          </div>
+          <div class="seal-item">
+            <div class="seal seal--mini seal--light" style="--topic:#5FC98D;"><span class="seal-code">26000</span><span class="seal-label">ISO</span></div>
+            <span class="tag">Responsabilidad Social</span>
+          </div>
+        </div>
+
+        <div class="integrantes-label">Integrantes</div>
+        <div class="chip-row" style="justify-content:center;">
+          <span class="chip">Wendy Carolina Gómez Suache</span>
+          <span class="chip">José Julián Briñez Garzón</span>
+          <span class="chip">Isabella Ramos Betancourt</span>
+          <span class="chip">Cristhian Gaitán Guzmán</span>
+          <span class="chip">Laura Vanessa Serna Quintero</span>
+          <span class="chip">Reinel Estiven Díaz Rojas</span>
+          <span class="chip">Mariana Muñoz Tovar</span>
+          <span class="chip">Zinthya Tamara Olaya Vargas</span>
+          <span class="chip">Juan David Solano García</span>
+        </div>
+
+        <div class="source-box" style="justify-content:center;">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://www.iso.org" target="_blank" rel="noopener">International Organization for Standardization (ISO)</a>
+          <a href="https://www.icontec.org" target="_blank" rel="noopener">ICONTEC</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. OBJETIVO -->
+    <section class="slide topic-general" data-index="2">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">01 · Introducción — Wendy Gómez</div>
+          <h2 class="slide-title">Objetivo de la exposición</h2>
+          <p class="lead">"Reconocer el propósito, campo de aplicación y utilidad de diferentes Normas Técnicas Colombianas ISO, relacionándolas con situaciones reales de las organizaciones."</p>
+          <p class="slide-sub">Una norma ISO es un acuerdo internacional documentado que fija especificaciones o criterios para que un producto, proceso, servicio o sistema de gestión cumpla su propósito de forma segura, coherente y confiable, sin importar el país donde se aplique.</p>
+          <div class="mini-steps">
+            <div class="mini-step"><b>Qué veremos</b>Tres normas ISO con enfoques distintos y complementarios.</div>
+            <div class="mini-step"><b>Cómo lo veremos</b>Nombre, propósito y campo de aplicación de cada una.</div>
+            <div class="mini-step"><b>Por qué importa</b>Un caso real y verificable que muestra su impacto.</div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://www.iso.org/about-us.html" target="_blank" rel="noopener">ISO — About us</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. PANORAMA GENERAL -->
+    <section class="slide topic-general" data-index="3">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">01 · Introducción — Wendy Gómez</div>
+          <h2 class="slide-title">Tres normas, tres enfoques de gestión</h2>
+          <p class="slide-sub">Ninguna exige un único modelo: las tres se adaptan al tamaño, sector y contexto de cada organización.</p>
+          <div class="card-grid">
+            <div class="topic-card" style="--topic:var(--accent-45001);">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9.5 12l1.8 1.8L14.5 10"/></svg>
+              <div class="code">ISO 45001:2018</div>
+              <div class="name">Seguridad y Salud en el Trabajo</div>
+              <p>Previene lesiones y enfermedades laborales, creando lugares de trabajo seguros.</p>
+            </div>
+            <div class="topic-card" style="--topic:var(--accent-31000);">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4l9 16H3L12 4z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/></svg>
+              <div class="code">ISO 31000:2018</div>
+              <div class="name">Gestión del Riesgo</div>
+              <p>Guía para identificar, analizar y tratar cualquier tipo de riesgo organizacional.</p>
+            </div>
+            <div class="topic-card" style="--topic:var(--accent-26000);">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.6-7-11a7 7 0 0114 0c0 6.4-7 11-7 11z"/><path d="M12 6c-2 3-2 7 0 9"/></svg>
+              <div class="code">ISO 26000:2010</div>
+              <div class="name">Responsabilidad Social</div>
+              <p>Orienta un comportamiento ético y transparente hacia la sociedad y el ambiente.</p>
+            </div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <span>ISO 45001:2018 · ISO 31000:2018 · ISO 26000:2010 — referencias completas en la diapositiva final</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. ISO 45001 NOMBRE / PROPOSITO / CAMPO -->
+    <section class="slide topic-45001" data-index="4">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">02 · ISO 45001 — José Julián Briñez</div>
+          <h2 class="slide-title">Sistema de Gestión de Seguridad y Salud en el Trabajo</h2>
+          <div class="norm-head">
+            <div class="seal"><span class="seal-code">45001</span><span class="seal-label">ISO</span></div>
+            <div>
+              <div class="norm-full">Sistemas de gestión de la seguridad y salud en el trabajo — Requisitos con orientación para su uso</div>
+              <div class="norm-code">ISO 45001:2018 · publicada en marzo de 2018</div>
+            </div>
+          </div>
+          <div class="norm-body">
+            <div class="norm-col">
+              <h4>Propósito</h4>
+              <ul class="bullets">
+                <li>Prevenir lesiones, enfermedades y muertes relacionadas con el trabajo.</li>
+                <li>Proporcionar lugares de trabajo seguros y saludables, gestionando los riesgos de forma proactiva.</li>
+                <li>Mejorar continuamente el desempeño en seguridad y salud ocupacional (SST).</li>
+              </ul>
+            </div>
+            <div class="norm-col">
+              <h4>Campo de aplicación</h4>
+              <ul class="bullets">
+                <li>Aplica a cualquier organización, sin importar su tamaño, tipo o actividad.</li>
+                <li>Muy usada en manufactura, construcción, transporte, energía, minería y el sector automotriz.</li>
+                <li>Aborda peligros bajo control de la organización: maquinaria, procesos, factores psicosociales, contratistas y visitantes.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://www.iso.org/standard/63787.html" target="_blank" rel="noopener">ISO (2018). ISO 45001:2018</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. ISO 45001 CASO DE EXITO -->
+    <section class="slide topic-45001" data-index="5">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">02 · ISO 45001 — Isabella Ramos</div>
+          <h2 class="slide-title">Caso de éxito: Audi México (San José Chiapa, Puebla)</h2>
+          <p class="slide-sub">Planta armadora del Grupo Audi, fabricante único del modelo Q5 fuera de Alemania.</p>
+          <div class="case-grid">
+            <div class="case-card">
+              <h4>Problema / Necesidad</h4>
+              <p>Garantizar la seguridad de miles de colaboradores en una planta de alta complejidad industrial, un reto que se agudizó durante la pandemia de COVID-19.</p>
+            </div>
+            <div class="case-card">
+              <h4>Aplicación de la norma</h4>
+              <p>La planta certificó su Sistema de Gestión de Seguridad y Salud en el Trabajo bajo ISO 45001:2018, tras superar cinco auditorías internas específicas centradas en procesos de seguridad industrial.</p>
+            </div>
+            <div class="case-card">
+              <h4>Mejora / Beneficio</h4>
+              <p>En febrero de 2022 se convirtió en la primera planta de todo el Grupo Audi en el mundo en obtener esta certificación, reforzando su imagen como empresa segura y comprometida con sus colaboradores.</p>
+            </div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://www.audi.com.mx/es/audi-en-mexico/media-center/notas/220224_audi-mexico-obtiene-ISO-45001-la-posiciona-como-una-empresa-segura/" target="_blank" rel="noopener">Audi México (24 feb. 2022). Comunicado de prensa</a>
+          <a href="https://www.milenio.com/negocios/planta-audi-puebla-obtiene-certificacion-empresa-segura" target="_blank" rel="noopener">Milenio (2022)</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. ISO 31000 NOMBRE / PROPOSITO / CAMPO -->
+    <section class="slide topic-31000" data-index="6">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">03 · ISO 31000 — Cristhian Gaitán</div>
+          <h2 class="slide-title">Gestión del Riesgo</h2>
+          <div class="norm-head">
+            <div class="seal"><span class="seal-code">31000</span><span class="seal-label">ISO</span></div>
+            <div>
+              <div class="norm-full">Gestión del riesgo — Directrices</div>
+              <div class="norm-code">ISO 31000:2018 · segunda edición, 2018</div>
+            </div>
+          </div>
+          <div class="norm-body">
+            <div class="norm-col">
+              <h4>Propósito</h4>
+              <ul class="bullets">
+                <li>Brindar principios y directrices genéricas —no certificables— para gestionar cualquier tipo de riesgo de forma sistemática y transparente.</li>
+                <li>Ayudar a integrar la gestión del riesgo en la toma de decisiones estratégicas y operativas.</li>
+                <li>Aumentar la probabilidad de alcanzar los objetivos y fortalecer la resiliencia organizacional.</li>
+              </ul>
+            </div>
+            <div class="norm-col">
+              <h4>Campo de aplicación</h4>
+              <ul class="bullets">
+                <li>Aplicable a cualquier organización pública, privada o social, sin importar tamaño o sector.</li>
+                <li>Cubre toda la vida de la organización: estrategia, operaciones, proyectos, productos y comunicación.</li>
+                <li>Sirve de referencia para integrar el riesgo en otros sistemas certificados (calidad, ambiente, SST).</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://www.iso.org/standard/65694.html" target="_blank" rel="noopener">ISO (2018). ISO 31000:2018</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. ISO 31000 CASO DE EXITO -->
+    <section class="slide topic-31000" data-index="7">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">03 · ISO 31000 — Laura Serna</div>
+          <h2 class="slide-title">Caso de éxito: Groupe La Poste (Francia)</h2>
+          <p class="slide-sub">Grupo postal francés, ~250.000 empleados, modelo multi-negocio: correo, paquetería, banca y seguros.</p>
+          <div class="case-grid">
+            <div class="case-card">
+              <h4>Problema / Necesidad</h4>
+              <p>Solo 2 de sus 300 filiales usaban un estándar claro de gestión de riesgos, mientras el grupo enfrentaba una fuerte transformación digital y nuevas exigencias de servicio público.</p>
+            </div>
+            <div class="case-card">
+              <h4>Aplicación de la norma</h4>
+              <p>Desde 2015 usó las directrices de ISO 31000 para construir un marco común, basado en el compromiso de la alta dirección, la obligación de todas las filiales de considerar los riesgos mayores, y la actualización anual de los mapas de riesgo.</p>
+            </div>
+            <div class="case-card">
+              <h4>Mejora / Beneficio</h4>
+              <p>Integró los distintos niveles de madurez del control interno, creó un comité de riesgo a nivel de Grupo y logró una identificación de riesgos más precisa, que le permitió lanzar nuevos negocios con una supervisión mejor adaptada.</p>
+            </div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://committee.iso.org/files/live/sites/tc262/files/Documents/groupe-la-poste-2017-06-09.pdf" target="_blank" rel="noopener">ISO/TC 262 Risk Management (2017). Case study — Groupe La Poste</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. ISO 26000 NOMBRE Y PROPOSITO -->
+    <section class="slide topic-26000" data-index="8">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">04 · ISO 26000 — Reinel Estiven Díaz</div>
+          <h2 class="slide-title">Guía de Responsabilidad Social</h2>
+          <div class="norm-head">
+            <div class="seal"><span class="seal-code">26000</span><span class="seal-label">ISO</span></div>
+            <div>
+              <div class="norm-full">Guía de responsabilidad social</div>
+              <div class="norm-code">ISO 26000:2010 · en Colombia: GTC‑ISO 26000, adoptada por ICONTEC</div>
+            </div>
+          </div>
+          <div class="norm-body single">
+            <div class="norm-col">
+              <h4>Propósito</h4>
+              <ul class="bullets">
+                <li>Ayudar a las organizaciones a entender qué es la responsabilidad social y a traducir sus principios en acciones efectivas.</li>
+                <li>Es una guía voluntaria y no certificable: no establece requisitos, sino orientación y buenas prácticas.</li>
+                <li>Promueve un comportamiento ético y transparente que contribuya al desarrollo sostenible, incluyendo la salud y el bienestar de la sociedad.</li>
+              </ul>
+            </div>
+          </div>
+          <p class="slide-sub" style="margin-top:14px;">Se desarrolló con la participación de cerca de 500 expertos de casi 100 países y se publicó el 1 de noviembre de 2010, tras un proceso de negociación de varios años entre gobiernos, empresas, sindicatos y ONG.</p>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://www.iso.org/standard/42546.html" target="_blank" rel="noopener">ISO (2010). ISO 26000:2010</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. ISO 26000 CAMPO DE APLICACION -->
+    <section class="slide topic-26000" data-index="9">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">04 · ISO 26000 — Juan David Solano</div>
+          <h2 class="slide-title">Campo de aplicación de ISO 26000</h2>
+          <p class="slide-sub">Está pensada para todo tipo de organizaciones, sin importar tamaño, sector o ubicación geográfica:</p>
+          <div class="chip-row">
+            <span class="chip">Multinacionales</span>
+            <span class="chip">Pymes</span>
+            <span class="chip">Entidades gubernamentales</span>
+            <span class="chip">ONG</span>
+            <span class="chip">Universidades y hospitales</span>
+          </div>
+          <p class="slide-sub" style="margin-top:16px;">Su guía aborda 7 materias fundamentales de la responsabilidad social:</p>
+          <div class="materias-grid">
+            <div class="materia">Gobernanza de la organización</div>
+            <div class="materia">Derechos humanos</div>
+            <div class="materia">Prácticas laborales</div>
+            <div class="materia">Medio ambiente</div>
+            <div class="materia">Prácticas justas de operación</div>
+            <div class="materia">Asuntos de consumidores</div>
+            <div class="materia">Participación activa y desarrollo de la comunidad</div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://www.iso.org/standard/42546.html" target="_blank" rel="noopener">ISO (2010). ISO 26000:2010</a>
+          <a href="https://tienda.icontec.org/gp-guia-de-responsabilidad-social-gtc-iso26000-2019.html" target="_blank" rel="noopener">ICONTEC. GTC‑ISO 26000:2019</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. ISO 26000 CASO DE EXITO -->
+    <section class="slide topic-26000" data-index="10">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">04 · ISO 26000 — Mariana Muñoz</div>
+          <h2 class="slide-title">Caso de éxito: Talgo (España)</h2>
+          <p class="slide-sub">Fabricante español de trenes y material rodante, con contratos ferroviarios internacionales.</p>
+          <div class="case-grid">
+            <div class="case-card">
+              <h4>Problema / Necesidad</h4>
+              <p>Necesitaba demostrar, de forma verificable ante clientes e inversionistas, un compromiso real con la responsabilidad social en un sector con crecientes exigencias ambientales, sociales y de gobernanza (ESG).</p>
+            </div>
+            <div class="case-card">
+              <h4>Aplicación de la norma</h4>
+              <p>Implementó la metodología de la Guía ISO 26000 en su gestión y se sometió a una verificación externa bienal de su nivel de cumplimiento en los principios y materias fundamentales de la norma.</p>
+            </div>
+            <div class="case-card">
+              <h4>Mejora / Beneficio</h4>
+              <p>Su auditoría externa más reciente confirmó un alto nivel de cumplimiento y reconocimientos adicionales de sostenibilidad, como se resume abajo.</p>
+            </div>
+          </div>
+          <div class="stat-strip">
+            <div class="stat"><b>98%</b><span>Cumplimiento en principios</span></div>
+            <div class="stat"><b>94%</b><span>Cumplimiento en materias fundamentales</span></div>
+            <div class="stat"><b>68/100</b><span>EcoVadis — top 15% sector ferroviario</span></div>
+            <div class="stat"><b>44/100</b><span>S&amp;P Global ESG — sobre la media del sector</span></div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <a href="https://www.talgo.com/informeanual2024/sostenibilidad-talgo/" target="_blank" rel="noopener">Talgo (2024). Sostenibilidad — Informe anual</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. CIERRE Y CONCLUSIONES -->
+    <section class="slide topic-general" data-index="11">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">05 · Cierre — Zinthya Tamara Olaya</div>
+          <h2 class="slide-title">Cierre y conclusiones</h2>
+          <table class="compare-table">
+            <thead>
+              <tr><th>Norma</th><th>Enfoque</th><th>¿Certificable?</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="dot" style="background:var(--accent-45001);"></span>ISO 45001</td><td>Seguridad y salud en el trabajo</td><td>Sí</td></tr>
+              <tr><td><span class="dot" style="background:var(--accent-31000);"></span>ISO 31000</td><td>Gestión del riesgo</td><td>No — guía de directrices</td></tr>
+              <tr><td><span class="dot" style="background:var(--accent-26000);"></span>ISO 26000</td><td>Responsabilidad social</td><td>No — guía voluntaria</td></tr>
+            </tbody>
+          </table>
+          <p class="slide-sub" style="margin-top:16px;">Aunque abordan dimensiones distintas —personas, incertidumbre y sociedad—, las tres normas comparten un mismo espíritu: la gestión sistemática y la mejora continua. Los casos de Audi México, Groupe La Poste y Talgo muestran que su valor no está en el papel, sino en cómo transforman decisiones y resultados reales.</p>
+          <p class="slide-sub" style="font-weight:600;color:var(--navy-800);">Gracias por su atención.</p>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Fuentes</span>
+          <span>Elaboración propia con base en las fuentes citadas en cada diapositiva</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. REFERENCIAS BIBLIOGRAFICAS -->
+    <section class="slide topic-general" data-index="12">
+      <div class="slide-inner">
+        <div class="slide-content">
+          <div class="eyebrow">Referencias</div>
+          <h2 class="slide-title">Referencias bibliográficas</h2>
+          <div class="ref-columns">
+            <div class="ref-group">
+              <h4>Normas oficiales</h4>
+              <ul class="ref-list">
+                <li>International Organization for Standardization. (2018). <em>ISO 45001:2018 — Occupational health and safety management systems</em>. <a href="https://www.iso.org/standard/63787.html" target="_blank" rel="noopener">iso.org/standard/63787.html</a></li>
+                <li>International Organization for Standardization. (2018). <em>ISO 31000:2018 — Risk management — Guidelines</em>. <a href="https://www.iso.org/standard/65694.html" target="_blank" rel="noopener">iso.org/standard/65694.html</a></li>
+                <li>International Organization for Standardization. (2010). <em>ISO 26000:2010 — Guidance on social responsibility</em>. <a href="https://www.iso.org/standard/42546.html" target="_blank" rel="noopener">iso.org/standard/42546.html</a></li>
+                <li>ICONTEC. (2019). <em>GTC‑ISO 26000:2019 — Guía de responsabilidad social</em>. <a href="https://tienda.icontec.org/gp-guia-de-responsabilidad-social-gtc-iso26000-2019.html" target="_blank" rel="noopener">tienda.icontec.org</a></li>
+              </ul>
+            </div>
+            <div class="ref-group">
+              <h4>Casos de éxito</h4>
+              <ul class="ref-list">
+                <li>Audi México. (24 de febrero de 2022). <em>Audi México obtiene la Certificación ISO 45001</em> [Comunicado de prensa]. <a href="https://www.audi.com.mx/es/audi-en-mexico/media-center/notas/220224_audi-mexico-obtiene-ISO-45001-la-posiciona-como-una-empresa-segura/" target="_blank" rel="noopener">audi.com.mx</a></li>
+                <li>Milenio. (25 de febrero de 2022). <em>Planta de Audi en Puebla obtiene certificación de empresa segura</em>. <a href="https://www.milenio.com/negocios/planta-audi-puebla-obtiene-certificacion-empresa-segura" target="_blank" rel="noopener">milenio.com</a></li>
+                <li>ISO/TC 262 Risk Management, AG 1 Communications. (2017). <em>Case study on ISO 31000 — Groupe La Poste, Francia</em>. <a href="https://committee.iso.org/files/live/sites/tc262/files/Documents/groupe-la-poste-2017-06-09.pdf" target="_blank" rel="noopener">committee.iso.org</a></li>
+                <li>Talgo. (2024). <em>Sostenibilidad — Transparencia, certificaciones y resultados</em>. <a href="https://www.talgo.com/informeanual2024/sostenibilidad-talgo/" target="_blank" rel="noopener">talgo.com</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="source-box">
+          <span class="source-tag">Nota</span>
+          <span>Todas las fuentes fueron consultadas y verificadas en agosto de 2026.</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<nav class="controls">
+  <button id="prevBtn" class="nav-btn" type="button" aria-label="Diapositiva anterior">← Anterior</button>
+  <div class="counter">
+    <span id="counterText">Diapositiva 1 de 12</span>
+    <span class="hint">Usa ← → del teclado para navegar</span>
+  </div>
+  <button id="nextBtn" class="nav-btn" type="button" aria-label="Siguiente diapositiva">Siguiente →</button>
+</nav>
+
+<script>
+  (function(){
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var total = slides.length;
+    var current = 1;
+
+    var stage = document.getElementById('stage');
+    var progressFill = document.getElementById('progressFill');
+    var counterText = document.getElementById('counterText');
+    var prevBtn = document.getElementById('prevBtn');
+    var nextBtn = document.getElementById('nextBtn');
+
+    function render(){
+      slides.forEach(function(s){
+        var idx = parseInt(s.getAttribute('data-index'), 10);
+        s.classList.toggle('active', idx === current);
+      });
+      progressFill.style.width = (current / total * 100) + '%';
+      counterText.textContent = 'Diapositiva ' + current + ' de ' + total;
+      prevBtn.disabled = current === 1;
+      nextBtn.disabled = current === total;
+      var activeInner = stage.querySelector('.slide.active .slide-inner');
+      if (activeInner) { activeInner.scrollTop = 0; }
+    }
+
+    function goTo(n){
+      if (n < 1 || n > total) return;
+      current = n;
+      render();
+    }
+
+    prevBtn.addEventListener('click', function(){ goTo(current - 1); });
+    nextBtn.addEventListener('click', function(){ goTo(current + 1); });
+
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') { goTo(current + 1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { goTo(current - 1); }
+    });
+
+    render();
+  })();
+</script>
+
+</body>
+</html>
