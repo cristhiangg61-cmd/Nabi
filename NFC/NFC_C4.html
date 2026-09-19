@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lector de chips NFC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ECEFF3;
+    --surface: #FFFFFF;
+    --ink: #151C26;
+    --muted: #5A6676;
+    --line: #D3D9E1;
+    --accent: #2438E8;
+    --accent-ink: #FFFFFF;
+    --zero: #A3ADBB;
+    --err: #B3261E;
+    --ok: #17734A;
+    --sans: "Bricolage Grotesque", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1322;
+      --surface: #161E33;
+      --ink: #E7ECF6;
+      --muted: #9AA6BD;
+      --line: #26314D;
+      --accent: #8C9BFF;
+      --accent-ink: #0D1322;
+      --zero: #55617D;
+      --err: #FF8A80;
+      --ok: #6FD6A0;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D1322;
+    --surface: #161E33;
+    --ink: #E7ECF6;
+    --muted: #9AA6BD;
+    --line: #26314D;
+    --accent: #8C9BFF;
+    --accent-ink: #0D1322;
+    --zero: #55617D;
+    --err: #FF8A80;
+    --ok: #6FD6A0;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 3rem;
+  }
+  h1 {
+    margin: 0 0 .5rem;
+    font-size: clamp(1.9rem, 7vw, 2.6rem);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .lede { margin: 0; color: var(--muted); max-width: 42ch; }
+
+  /* Botón de escaneo */
+  .scanner { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin: 2.25rem 0 1.5rem; }
+  .orb {
+    position: relative;
+    width: 9rem; height: 9rem;
+    border: 0; border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 600 1.05rem/1.2 var(--sans);
+    cursor: pointer;
+    isolation: isolate;
+  }
+  .orb:disabled { opacity: .45; cursor: not-allowed; }
+  .orb:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+  .orb::before, .orb::after {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    opacity: 0;
+    z-index: -1;
+  }
+  .orb[data-state="on"]::before { animation: ring 2s ease-out infinite; }
+  .orb[data-state="on"]::after { animation: ring 2s ease-out 1s infinite; }
+  @keyframes ring {
+    0% { transform: scale(1); opacity: .7; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .orb[data-state="on"]::before, .orb[data-state="on"]::after { animation: none; opacity: .35; transform: scale(1.25); }
+  }
+  #status { margin: 0; min-height: 1.5em; text-align: center; color: var(--muted); max-width: 36ch; }
+  #status[data-kind="err"] { color: var(--err); }
+  #status[data-kind="ok"] { color: var(--ok); }
+
+  /* Resultado */
+  #result[hidden] { display: none; }
+  .total { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; margin: 1.5rem 0 1rem; }
+  .total output {
+    font-size: clamp(3.75rem, 20vw, 6.5rem);
+    line-height: .95;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .total span { color: var(--muted); font-size: 1.05rem; }
+
+  .facts { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; margin: 0 0 1.5rem; padding: 1rem 0; border-block: 1px solid var(--line); }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; font-family: var(--mono); font-size: .9rem; overflow-wrap: anywhere; align-self: center; }
+
+  .record { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; margin-bottom: .9rem; }
+  .record-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-bottom: .6rem; }
+  .record-head h2 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+  .record-head .size { font-family: var(--mono); font-size: .85rem; color: var(--muted); white-space: nowrap; }
+  .meta { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .9rem; margin: 0 0 .8rem; font-size: .9rem; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; font-family: var(--mono); font-size: .85rem; overflow-wrap: anywhere; }
+  .decoded { margin: 0 0 .8rem; padding: .6rem .75rem; border-left: 3px solid var(--accent); background: var(--bg); border-radius: 0 6px 6px 0; font-family: var(--mono); font-size: .85rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .dump { background: var(--bg); border-radius: 8px; padding: .7rem .8rem; overflow-x: auto; font-family: var(--mono); font-size: .8rem; line-height: 1.6; }
+  .dump .row { display: flex; gap: 1rem; white-space: pre; }
+  .dump .off { color: var(--muted); }
+  .dump .z { color: var(--zero); }
+  .dump-empty { color: var(--muted); font-size: .9rem; margin: 0; }
+
+  .copy {
+    margin-top: .4rem;
+    min-height: 2.75rem;
+    padding: 0 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    font: 600 .95rem var(--sans);
+    cursor: pointer;
+  }
+  .copy:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .delta { margin: -.5rem 0 1rem; color: var(--muted); }
+
+  .writer { margin-top: 2.5rem; padding: 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+  .writer h2 { margin: 0 0 .35rem; font-size: 1.15rem; font-weight: 600; }
+  .writer h3 { margin: 1.1rem 0 .3rem; font-size: 1rem; font-weight: 600; }
+  .writer .hint { margin: 0 0 .6rem; color: var(--muted); font-size: .95rem; }
+  .writer label { display: block; margin: .8rem 0 .3rem; font-weight: 600; font-size: .95rem; }
+  .writer textarea, .writer input[type="text"] { width: 100%; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: 400 1rem/1.4 var(--sans); }
+  .writer textarea { resize: vertical; }
+  .writer input[type="text"] { max-width: 8rem; font-family: var(--mono); }
+  .writer textarea:focus-visible, .writer input[type="text"]:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  #wPreview[hidden] { display: none; }
+  #wSummary { margin: 0 0 .6rem; color: var(--muted); font-size: .92rem; }
+  .writer .warn { margin: 1.1rem 0 .4rem; padding: .6rem .75rem; border-left: 3px solid var(--err); background: var(--bg); border-radius: 0 6px 6px 0; font-size: .92rem; }
+  .writer .check { display: flex; gap: .6rem; align-items: flex-start; font-weight: 400; margin: .6rem 0 1rem; }
+  .writer .check input { margin-top: .25rem; width: 1.15rem; height: 1.15rem; accent-color: var(--accent); flex: none; }
+  .write { min-height: 2.75rem; width: 100%; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font: 600 1rem var(--sans); cursor: pointer; }
+  .write:disabled { opacity: .45; cursor: not-allowed; }
+  .write:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+  .notes { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .92rem; }
+  .notes h2 { margin: 0 0 .5rem; font-size: 1rem; color: var(--ink); font-weight: 600; }
+  .notes ul { margin: 0; padding-left: 1.1rem; }
+  .notes li { margin-bottom: .4rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Lector de chips NFC</h1>
+    <p class="lede">Acerca un chip a la parte trasera del teléfono y mira cuántos bytes tiene y qué contienen.</p>
+  </header>
+
+  <section class="scanner" aria-label="Escaneo">
+    <button id="scan" class="orb" type="button" data-state="off"><span id="scanLabel">Escanear chip</span></button>
+    <p id="status" role="status" aria-live="polite">Toca el botón y acerca el chip.</p>
+  </section>
+
+  <section id="result" hidden aria-label="Resultado de la lectura">
+    <div class="total"><output id="total">0</output><span id="totalLabel">bytes de contenido</span></div>
+    <p id="delta" class="delta" hidden></p>
+    <dl class="facts">
+      <dt>UID</dt><dd id="uid"></dd>
+      <dt>Registros</dt><dd id="count"></dd>
+    </dl>
+    <div id="records"></div>
+    <button id="copy" class="copy" type="button">Copiar resultado</button>
+  </section>
+
+  <section class="writer" aria-labelledby="wTitle">
+    <h2 id="wTitle">Escribir texto en el chip</h2>
+    <p class="hint">Escribe un texto y mira los bytes que se guardarán. Al terminar, la página vuelve a leer el chip para que compares. Los chips pequeños tienen poco espacio, así que empieza con algo corto.</p>
+
+    <label for="wText">Texto</label>
+    <textarea id="wText" rows="3" maxlength="200">Hola</textarea>
+
+    <label for="wLang">Idioma</label>
+    <input id="wLang" type="text" value="es" maxlength="10" autocapitalize="off" autocomplete="off" spellcheck="false">
+
+    <div id="wPreview">
+      <h3>Bytes que se escribirán</h3>
+      <p id="wSummary"></p>
+      <dl id="wParts" class="meta"></dl>
+      <div id="wDump"></div>
+    </div>
+
+    <p class="warn">Escribir reemplaza el contenido NDEF del chip. No lo hagas en tarjetas de acceso o transporte: podrías dejarlas inservibles.</p>
+    <label class="check"><input id="wOk" type="checkbox"><span>Este chip es mío y acepto que se reemplace su contenido NDEF.</span></label>
+    <button id="write" class="write" type="button" disabled>Escribir en el chip</button>
+  </section>
+
+  <section class="notes">
+    <h2>Qué puedes esperar</h2>
+    <ul>
+      <li>Esta página lee chips con formato NDEF: etiquetas NTAG, stickers y muchos llaveros.</li>
+      <li>Las tarjetas Mifare Classic se detectan, pero no se pueden leer desde el navegador. Para esas usa MIFARE Classic Tool.</li>
+      <li>El total suma solo el contenido de los registros. No incluye encabezados ni la memoria libre del chip.</li>
+      <li>Funciona en Chrome para Android, con NFC activado y la pantalla encendida.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var scanBtn = $('scan'), scanLabel = $('scanLabel'), statusEl = $('status');
+  var result = $('result'), totalEl = $('total'), totalLabel = $('totalLabel');
+  var uidEl = $('uid'), countEl = $('count'), recordsEl = $('records'), copyBtn = $('copy');
+  var controller = null;
+  var lastReport = '';
+  var deltaEl = $('delta');
+  var wText = $('wText'), wLang = $('wLang'), wOk = $('wOk'), writeBtn = $('write');
+  var wPreview = $('wPreview'), wSummary = $('wSummary'), wParts = $('wParts'), wDump = $('wDump');
+  var writeCtrl = null, beforeWrite = null, lastTotal = null;
+  var supported = 'NDEFReader' in window;
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.dataset.kind = kind || '';
+  }
+  function setScanning(on) {
+    scanBtn.dataset.state = on ? 'on' : 'off';
+    scanLabel.textContent = on ? 'Detener' : 'Escanear chip';
+  }
+  function h2(b) { return b.toString(16).padStart(2, '0'); }
+  function bytesOf(dv) {
+    return dv ? new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength) : new Uint8Array(0);
+  }
+  function printable(b) { return b >= 32 && b < 127; }
+  function plural(n, one, many) { return n === 1 ? one : many; }
+
+  function decode(record, u8) {
+    var t = record.recordType;
+    try {
+      if (t === 'text') return new TextDecoder(record.encoding || 'utf-8').decode(u8);
+      if (t === 'url' || t === 'absolute-url') return new TextDecoder().decode(u8);
+      if (t === 'mime' && /^(text\/|application\/json)/.test(record.mediaType || '')) return new TextDecoder().decode(u8);
+    } catch (e) { /* se muestra solo el volcado */ }
+    return null;
+  }
+
+  function buildDump(u8) {
+    var wrap = document.createElement('div');
+    wrap.className = 'dump';
+    for (var i = 0; i < u8.length; i += 8) {
+      var row = document.createElement('div');
+      row.className = 'row';
+      var off = document.createElement('span');
+      off.className = 'off';
+      off.textContent = i.toString(16).padStart(4, '0');
+      var hx = document.createElement('span');
+      var asc = document.createElement('span');
+      var chars = '';
+      for (var j = 0; j < 8; j++) {
+        var b = u8[i + j];
+        var s = document.createElement('span');
+        if (b === undefined) {
+          s.textContent = '  ';
+        } else {
+          s.textContent = h2(b);
+          if (b === 0) s.className = 'z';
+          chars += printable(b) ? String.fromCharCode(b) : '.';
+        }
+        hx.appendChild(s);
+        hx.appendChild(document.createTextNode(' '));
+      }
+      asc.textContent = chars;
+      row.appendChild(off);
+      row.appendChild(hx);
+      row.appendChild(asc);
+      wrap.appendChild(row);
+    }
+    return wrap;
+  }
+
+  function addMeta(dl, label, value) {
+    if (value === undefined || value === null || value === '') return;
+    var dt = document.createElement('dt');
+    dt.textContent = label;
+    var dd = document.createElement('dd');
+    dd.textContent = value;
+    dl.appendChild(dt);
+    dl.appendChild(dd);
+  }
+
+  function render(ev) {
+    var records = Array.prototype.slice.call(ev.message.records);
+    var parts = records.map(function (r) { return { r: r, u8: bytesOf(r.data) }; });
+    var total = parts.reduce(function (n, p) { return n + p.u8.length; }, 0);
+    var uid = ev.serialNumber || '';
+    var uidLen = uid ? uid.split(':').length : 0;
+
+    totalEl.textContent = total;
+    totalLabel.textContent = plural(total, 'byte de contenido', 'bytes de contenido');
+    if (beforeWrite !== null && beforeWrite !== total) {
+      deltaEl.textContent = 'Antes de escribir: ' + beforeWrite + ' ' + plural(beforeWrite, 'byte', 'bytes');
+      deltaEl.hidden = false;
+    } else {
+      deltaEl.hidden = true;
+    }
+    beforeWrite = null;
+    lastTotal = total;
+    uidEl.textContent = uid ? uid + ' (' + uidLen + ' ' + plural(uidLen, 'byte', 'bytes') + ')' : 'No disponible';
+    countEl.textContent = records.length;
+    recordsEl.textContent = '';
+
+    var report = ['UID: ' + (uid || 'No disponible'), 'Registros: ' + records.length, 'Bytes de contenido: ' + total, ''];
+
+    if (parts.length === 0) {
+      var empty = document.createElement('p');
+      empty.className = 'dump-empty';
+      empty.textContent = 'El chip no tiene registros NDEF. Está vacío o no usa ese formato.';
+      recordsEl.appendChild(empty);
+    }
+
+    parts.forEach(function (p, idx) {
+      var r = p.r, u8 = p.u8;
+      var card = document.createElement('article');
+      card.className = 'record';
+
+      var head = document.createElement('div');
+      head.className = 'record-head';
+      var title = document.createElement('h2');
+      title.textContent = 'Registro ' + (idx + 1) + ': ' + r.recordType;
+      var size = document.createElement('span');
+      size.className = 'size';
+      size.textContent = u8.length + ' ' + plural(u8.length, 'byte', 'bytes');
+      head.appendChild(title);
+      head.appendChild(size);
+      card.appendChild(head);
+
+      var meta = document.createElement('dl');
+      meta.className = 'meta';
+      addMeta(meta, 'Tipo MIME', r.mediaType);
+      addMeta(meta, 'Idioma', r.lang);
+      addMeta(meta, 'Codificación', r.encoding);
+      addMeta(meta, 'ID', r.id);
+      if (meta.children.length) card.appendChild(meta);
+
+      var text = decode(r, u8);
+      if (text) {
+        var q = document.createElement('p');
+        q.className = 'decoded';
+        q.textContent = text;
+        card.appendChild(q);
+      }
+
+      if (u8.length) {
+        card.appendChild(buildDump(u8));
+      } else {
+        var none = document.createElement('p');
+        none.className = 'dump-empty';
+        none.textContent = 'Este registro no tiene datos.';
+        card.appendChild(none);
+      }
+      recordsEl.appendChild(card);
+
+      report.push('Registro ' + (idx + 1) + ' (' + r.recordType + '), ' + u8.length + ' bytes');
+      if (text) report.push('Texto: ' + text);
+      report.push(Array.prototype.map.call(u8, h2).join(' '));
+      report.push('');
+    });
+
+    lastReport = report.join('\n');
+    result.hidden = false;
+    setStatus('Chip leído. Puedes acercar otro.', 'ok');
+    try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) { /* opcional */ }
+  }
+
+  function explain(err) {
+    var n = err && err.name;
+    if (n === 'NotAllowedError') return 'No hay permiso para usar NFC. Acepta el aviso del navegador y revisa que esta página esté abierta en Chrome, no dentro de otra app.';
+    if (n === 'NotSupportedError') return 'NFC no está disponible: el teléfono no lo tiene, está apagado o el chip no admite esta operación.';
+    if (n === 'SecurityError') return 'El navegador bloqueó NFC porque la página está incrustada en otra. Ábrela en una pestaña propia de Chrome.';
+    if (n === 'NetworkError') return 'No se pudo escribir: el chip se alejó demasiado pronto, está protegido contra escritura o no admite mensajes NDEF.';
+    if (n === 'InvalidStateError') return 'Hay otra operación NFC en curso. Espera un momento e inténtalo de nuevo.';
+    return 'No se pudo completar la operación NFC: ' + ((err && err.message) || 'error desconocido');
+  }
+
+  async function start(okMsg, okKind) {
+    var ctrl = new AbortController();
+    try {
+      var reader = new NDEFReader();
+      reader.onreading = render;
+      reader.onreadingerror = function () {
+        setStatus('Se detectó el chip pero no se pudo leer como NDEF. Es normal con Mifare Classic; para esos usa MIFARE Classic Tool.', 'err');
+      };
+      ctrl.signal.addEventListener('abort', function () {
+        controller = null;
+        setScanning(false);
+        setStatus('Escaneo detenido.');
+      });
+      await reader.scan({ signal: ctrl.signal });
+      controller = ctrl;
+      setScanning(true);
+      setStatus(okMsg || 'Acerca el chip a la parte trasera del teléfono.', okKind);
+    } catch (err) {
+      controller = null;
+      setScanning(false);
+      setStatus(explain(err), 'err');
+    }
+  }
+
+  function langValid(l) { return /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(l); }
+
+  function buildTextNdef(text, lang) {
+    var enc = new TextEncoder();
+    var t = enc.encode(text), l = enc.encode(lang);
+    var payload = new Uint8Array(1 + l.length + t.length);
+    payload[0] = l.length & 0x3F;
+    payload.set(l, 1);
+    payload.set(t, 1 + l.length);
+    var isShort = payload.length < 256;
+    var head = [isShort ? 0xD1 : 0xC1, 0x01];
+    var n = payload.length;
+    var lenBytes = isShort ? [n] : [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+    var bytes = Uint8Array.from(head.concat(lenBytes, [0x54], Array.prototype.slice.call(payload)));
+    return {
+      bytes: bytes,
+      textLen: t.length,
+      parts: [
+        { label: 'Encabezado', value: h2(head[0]) + (isShort ? ' (registro único, corto)' : ' (registro único, largo)') },
+        { label: 'Largo del tipo', value: h2(head[1]) },
+        { label: 'Largo del payload', value: lenBytes.map(function (b) { return h2(b); }).join(' ') },
+        { label: 'Tipo', value: '54 ("T", texto)' },
+        { label: 'Estado e idioma', value: h2(payload[0]) + ' ' + Array.prototype.map.call(l, function (b) { return h2(b); }).join(' ') + ' ("' + lang + '")' },
+        { label: 'Tu texto', value: t.length + ' ' + plural(t.length, 'byte', 'bytes') + ' en UTF-8' }
+      ]
+    };
+  }
+
+  function updateWrite() {
+    var text = wText.value;
+    var lang = wLang.value.trim();
+    var valid = text.length > 0 && langValid(lang);
+    wPreview.hidden = !valid;
+    if (valid) {
+      var m = buildTextNdef(text, lang);
+      wSummary.textContent = 'Texto: ' + m.textLen + ' ' + plural(m.textLen, 'byte', 'bytes') +
+        '. Mensaje NDEF completo: ' + m.bytes.length + ' ' + plural(m.bytes.length, 'byte', 'bytes') +
+        '. Al leerlo de nuevo, la página contará solo los bytes del texto.';
+      wParts.textContent = '';
+      m.parts.forEach(function (p) { addMeta(wParts, p.label, p.value); });
+      wDump.textContent = '';
+      wDump.appendChild(buildDump(m.bytes));
+    }
+    writeBtn.disabled = writeCtrl ? false : (!supported || !valid || !wOk.checked);
+  }
+
+  function resetWriteBtn() {
+    writeCtrl = null;
+    writeBtn.textContent = 'Escribir en el chip';
+    updateWrite();
+  }
+
+  async function writeTag() {
+    if (writeCtrl) { writeCtrl.abort(); return; }
+    var text = wText.value;
+    var lang = wLang.value.trim();
+    if (!supported || !text || !langValid(lang) || !wOk.checked) return;
+    if (controller) controller.abort();
+    var ctrl = new AbortController();
+    writeCtrl = ctrl;
+    writeBtn.textContent = 'Cancelar escritura';
+    updateWrite();
+    setStatus('Acerca el chip a la parte trasera del teléfono para escribir.');
+    try {
+      var w = new NDEFReader();
+      await w.write({ records: [{ recordType: 'text', data: text, lang: lang }] }, { signal: ctrl.signal });
+      beforeWrite = lastTotal;
+      resetWriteBtn();
+      start('Escritura completada. Leyendo el chip de nuevo; si no aparece, aléjalo y acércalo otra vez.', 'ok');
+    } catch (err) {
+      var aborted = err && err.name === 'AbortError';
+      resetWriteBtn();
+      setStatus(aborted ? 'Escritura cancelada.' : explain(err), aborted ? '' : 'err');
+    }
+  }
+
+  wText.addEventListener('input', updateWrite);
+  wLang.addEventListener('input', updateWrite);
+  wOk.addEventListener('change', updateWrite);
+  writeBtn.addEventListener('click', writeTag);
+  updateWrite();
+
+  scanBtn.addEventListener('click', function () {
+    if (controller) { controller.abort(); return; }
+    start();
+  });
+
+  copyBtn.addEventListener('click', async function () {
+    try {
+      await navigator.clipboard.writeText(lastReport);
+      setStatus('Resultado copiado.', 'ok');
+    } catch (e) {
+      setStatus('No se pudo copiar. Selecciona el texto a mano.', 'err');
+    }
+  });
+
+  if (!supported) {
+    scanBtn.disabled = true;
+    setStatus('Este navegador no permite leer NFC desde una página web. Abre esta página en Chrome para Android.', 'err');
+  }
+})();
+</script>
+</body>
+</html>
