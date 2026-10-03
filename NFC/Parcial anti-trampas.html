@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parcial anti-trampas</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mu:#5d6478;--ac:#2f5bea;--bad:#c62828;--ok:#2e7d32;--bd:#dfe3ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141b;--card:#1b1f2a;--tx:#eceff6;--mu:#a0a8bd;--ac:#7b9bff;--bad:#ff6b6b;--ok:#5fd07a;--bd:#2c3242}}
+:root[data-theme="dark"]{--bg:#12141b;--card:#1b1f2a;--tx:#eceff6;--mu:#a0a8bd;--ac:#7b9bff;--bad:#ff6b6b;--ok:#5fd07a;--bd:#2c3242}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none}
+main{max-width:640px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:14px}
+h1{font-size:1.3rem;margin:0 0 8px}h2{font-size:1.05rem;margin:0 0 12px}
+p,li{color:var(--mu);line-height:1.5}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:12px 18px;font-weight:600;width:100%}
+.opt{display:block;width:100%;text-align:left;background:transparent;color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px}
+.opt.sel{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 14%,transparent)}
+.bar{display:flex;justify-content:space-between;font-weight:600;margin-bottom:10px}
+.bad{color:var(--bad)}.ok{color:var(--ok)}
+.big{font-size:2.4rem;text-align:center;margin:6px 0}
+</style></head>
+<body><main id="app"></main>
+<script>
+// ====== EDITA AQUÍ: preguntas y tiempo ======
+const MINUTOS = 10;
+const PREGUNTAS = [
+ {q:"¿Cuál es el resultado de 7 × 8?", o:["54","56","64","48"], c:1},
+ {q:"¿Qué estructura de control repite un bloque mientras se cumpla una condición?", o:["if","switch","while","return"], c:2},
+ {q:"¿Cuál es la capital de Colombia?", o:["Medellín","Cali","Bogotá","Neiva"], c:2},
+ {q:"En binario, ¿cuánto vale 101?", o:["3","5","6","7"], c:1},
+ {q:"¿Qué componente de Arduino recibe el código compilado?", o:["Microcontrolador","Resistencia","Protoboard","Buzzer"], c:0}
+];
+// ============================================
+const KEY="parcial_estado_v1";
+const app=document.getElementById("app");
+let S={estado:"inicio",motivo:"",resp:[],fin:0,nota:0};
+let timer=null;
+
+function load(){try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function anular(motivo){
+  if(S.estado!=="corriendo")return;
+  S.estado="anulado";S.motivo=motivo;save();clearInterval(timer);
+  try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}
+  render();
+}
+function terminar(){
+  if(S.estado!=="corriendo")return;
+  S.nota=PREGUNTAS.reduce((n,p,i)=>n+(S.resp[i]===p.c?1:0),0);
+  S.estado="terminado";save();clearInterval(timer);
+  try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}
+  render();
+}
+async function iniciar(){
+  S={estado:"corriendo",motivo:"",resp:[],fin:Date.now()+MINUTOS*60000,nota:0};
+  try{await document.documentElement.requestFullscreen()}catch(e){}
+  save();render();
+  timer=setInterval(tick,500);
+}
+function tick(){
+  const t=document.getElementById("t");if(!t)return;
+  const r=Math.max(0,S.fin-Date.now());
+  t.textContent=String(Math.floor(r/60000)).padStart(2,"0")+":"+String(Math.floor(r/1000)%60).padStart(2,"0");
+  if(r<=0)terminar();
+}
+function marcar(i,j){if(S.estado!=="corriendo")return;S.resp[i]=j;save();render()}
+
+function render(){
+  if(S.estado==="inicio"){
+    app.innerHTML=`<div class="card"><h1>Parcial virtual</h1>
+    <p>${PREGUNTAS.length} preguntas · ${MINUTOS} minutos.</p>
+    <h2>Reglas</h2><ul>
+    <li>El parcial se abre en pantalla completa.</li>
+    <li><b class="bad">Si sales de la pantalla, cambias de pestaña o ventana, o recargas la página, el parcial se anula al instante.</b></li>
+    <li>Copiar, pegar y clic derecho están bloqueados.</li></ul>
+    <button class="btn" id="go">Acepto e iniciar</button></div>`;
+    document.getElementById("go").onclick=iniciar;
+  }else if(S.estado==="corriendo"){
+    app.innerHTML=`<div class="bar"><span>Parcial</span><span id="t"></span></div>`+
+    PREGUNTAS.map((p,i)=>`<div class="card"><h2>${i+1}. ${esc(p.q)}</h2>`+
+      p.o.map((o,j)=>`<button class="opt ${S.resp[i]===j?"sel":""}" data-i="${i}" data-j="${j}">${esc(o)}</button>`).join("")+`</div>`).join("")+
+    `<button class="btn" id="fin">Entregar parcial</button>`;
+    app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>marcar(+b.dataset.i,+b.dataset.j));
+    document.getElementById("fin").onclick=terminar;
+    tick();
+  }else if(S.estado==="anulado"){
+    app.innerHTML=`<div class="card"><div class="big bad">⛔</div><h1 class="bad" style="text-align:center">Parcial anulado</h1>
+    <p style="text-align:center">Motivo: ${esc(S.motivo)}.</p>
+    <p style="text-align:center">Comunícate con tu docente para más información.</p></div>`;
+  }else{
+    app.innerHTML=`<div class="card"><div class="big ok">✅</div><h1 style="text-align:center">Parcial entregado</h1>
+    <p style="text-align:center">Respuestas correctas: <b>${S.nota} de ${PREGUNTAS.length}</b></p></div>`;
+  }
+}
+
+// ===== Detección de salida de pantalla =====
+document.addEventListener("visibilitychange",()=>{if(document.hidden)anular("Cambiaste de pestaña o minimizaste la ventana")});
+window.addEventListener("blur",()=>anular("La ventana perdió el foco (saliste de la pantalla del parcial)"));
+document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement)anular("Saliste de la pantalla completa")});
+["copy","cut","paste","contextmenu","dragstart"].forEach(e=>document.addEventListener(e,ev=>{if(S.estado==="corriendo")ev.preventDefault()}));
+document.addEventListener("keydown",ev=>{if(S.estado==="corriendo"&&(ev.key==="PrintScreen"||(ev.ctrlKey||ev.metaKey)&&["c","v","x","p","s","u"].includes(ev.key.toLowerCase())))ev.preventDefault()});
+
+load();
+// Si recargó en medio del parcial, se anula
+if(S.estado==="corriendo"){S.estado="corriendo";anular("Recargaste o cerraste la página durante el parcial")}
+render();
+</script></body></html>
