@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de despacho de ambulancias – Neiva (OSRM + Traccar)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#14171c;--mut:#5d6672;--line:#dfe3e8;--acc:#1f6feb;--ok:#1a9b55;--warn:#d98a00;--bad:#d8352f}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1318;--card:#171c23;--fg:#e8ebef;--mut:#99a3b0;--line:#2a323c;--acc:#5b9bff;--ok:#3ccf82;--warn:#f0b13a;--bad:#ff6b63}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:12px}
+h1{font-size:19px;margin:6px 0 2px}
+.sub{color:var(--mut);margin:0 0 10px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:10px}
+select,button{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+button{cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+#map{height:430px;border-radius:10px;cursor:crosshair}
+.mk{width:28px;height:28px;border-radius:50%;color:#fff;font:700 11px/24px system-ui,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)}
+.s-libre{background:#1a9b55}.s-camino{background:#d98a00}.s-sitio{background:#1f6feb}.acc{background:#d8352f;font-size:15px}
+.mut{color:var(--mut);font-size:13px;margin:6px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}
+th{text-align:left;color:var(--mut);font-weight:600;font-size:12px;padding:4px 6px}
+td{padding:6px;border-top:1px solid var(--line)}
+tr.on td{font-weight:600}
+.cmp th.on{color:var(--acc)}
+.leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:6px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}
+input[type=text],input[type=password]{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);flex:1;min-width:150px}
+details{font-size:13px}
+summary{cursor:pointer;font-weight:600}
+code{font-size:12px;background:var(--bg);padding:1px 4px;border-radius:4px}
+</style>
+</head>
+<body>
+<main>
+<h1>🚑 Simulador de despacho – Neiva</h1>
+<p class="sub">Compara cuántas ambulancias van hoy a un accidente vs. una regla que envía solo las necesarias, con rutas reales por calles.</p>
+
+<section class="card">
+  <div class="row">
+    <label>Gravedad
+      <select id="sev"><option value="1">Leve → 1</option><option value="1">Moderada → 1</option><option value="2">Grave → 2</option></select>
+    </label>
+    <label><input type="radio" name="m" value="rule" checked> Con regla</label>
+    <label><input type="radio" name="m" value="today"> Hoy (van todas)</label>
+  </div>
+  <div class="row" style="margin-bottom:0">
+    <button class="p" id="go" disabled>Despachar</button>
+    <button id="reset">Reiniciar</button>
+  </div>
+</section>
+
+<section class="card">
+<details>
+<summary>📡 GPS reales (Traccar)</summary>
+<div class="row" style="margin-top:8px"><input type="text" id="tcUrl" placeholder="https://demo.traccar.org o http://localhost:8082"><input type="password" id="tcTok" placeholder="Token API de Traccar"><button id="tcBtn">Conectar</button></div>
+<p class="mut" id="tcSt">Sin conexión: se usan ambulancias simuladas.</p>
+<p class="mut">Con GPS reales, "Despachar" marca las ambulancias como en camino y dibuja su ruta; pasan a "En sitio" cuando el GPS está a menos de 100 m del accidente.</p>
+</details>
+</section>
+
+<section class="card">
+  <div id="map"></div>
+  <div class="leg"><span><i style="background:var(--ok)"></i>Libre</span><span><i style="background:var(--warn)"></i>En camino</span><span><i style="background:var(--acc)"></i>En sitio</span><span><i style="background:var(--bad)"></i>Accidente</span><span>▭ zona de análisis</span></div>
+</section>
+
+<section class="card" id="res"></section>
+
+<section class="card">
+<details>
+<summary>Fórmulas usadas</summary>
+<p><b>1. Tiempo de llegada (ETA):</b> duración de la ruta por calles calculada por OSRM (servicio <code>table</code>, una sola consulta para las 5 ambulancias).<br>Si OSRM no responde, se estima: <code>ETA (min) = d·1.3 / 30 · 60</code>, con <code>d</code> en línea recta.</p>
+<p><b>2. Distancia en línea recta (Haversine):</b><br><code>d = 2R·asin(√(sin²(Δφ/2) + cosφ₁·cosφ₂·sin²(Δλ/2)))</code>, con R = 6371 km.</p>
+<p><b>3. Regla:</b> leve = 1, moderada = 1, grave = 2. Se envían las <i>n</i> ambulancias libres con menor tiempo de llegada.</p>
+<p><b>4. Cobertura:</b><br><code>cobertura = puntos de la zona de análisis a ≤ 2 km (línea recta) de una ambulancia libre ÷ puntos totales</code></p>
+<p><b>5. Movimiento:</b> la ambulancia avanza por la ruta; <code>progreso = tiempo simulado ÷ ETA</code> (1 s real = 3 min simulados).</p>
+</details>
+</section>
+
+<p class="mut">Datos simulados: las posiciones de las ambulancias y los accidentes no son reales. Es una demostración y no sustituye el sistema del CRUEH. Mapa: Esri World Street Map. Rutas: OSRM (router.project-osrm.org), datos © colaboradores de OpenStreetMap. El servidor demo de OSRM es gratuito, sin garantías y limitado a 1 consulta por segundo.</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const B={latMin:2.895,latMax:2.965,lonMin:-75.310,lonMax:-75.252};
+const R=2,SPEED=3;
+const SEED=[['A1',2.9385,-75.2870],['A2',2.9150,-75.2950],['A3',2.9450,-75.2650],['A4',2.9280,-75.3050],['A5',2.9050,-75.2700]];
+const $=id=>document.getElementById(id);
+let amb=[],acc=null,sim=null,run=0;
+
+const map=L.map('map').setView([2.9273,-75.2819],13);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri | Rutas: OSRM © OpenStreetMap'}).addTo(map);
+L.rectangle([[B.latMin,B.lonMin],[B.latMax,B.lonMax]],{color:'#888',weight:1,dashArray:'4 4',fill:false,interactive:false}).addTo(map);
+const lg=L.layerGroup().addTo(map);
+const icon=(c,t)=>L.divIcon({className:'',html:`<div class="mk ${c}">${t}</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+
+/* ---------- OSRM (cola: máximo 1 consulta por segundo) ---------- */
+let chain=Promise.resolve();
+function osrm(path){
+  const p=chain.then(()=>fetch('https://router.project-osrm.org'+path).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}));
+  chain=p.catch(()=>{}).then(()=>new Promise(r=>setTimeout(r,1100)));
+  return p;
+}
+const ll=(lon,lat)=>lon.toFixed(6)+','+lat.toFixed(6);
+
+async function fetchTable(a0){
+  try{
+    const cs=amb.map(a=>ll(a.lon,a.lat)).concat(ll(a0.lon,a0.lat)).join(';');
+    const src=amb.map((_,i)=>i).join(';');
+    const j=await osrm(`/table/v1/driving/${cs}?sources=${src}&destinations=${amb.length}&annotations=duration,distance`);
+    if(j.code!=='Ok')throw new Error(j.code);
+    a0.tab={dur:j.durations.map(r=>r[0]),dist:j.distances?j.distances.map(r=>r[0]):amb.map(()=>null)};
+  }catch(e){a0.err=true}
+  if(acc===a0&&!sim){draw();panel()}
+}
+
+/* ---------- Geometría ---------- */
+function hav(a,b,c,d){const r=Math.PI/180,dp=(c-a)*r,dl=(d-b)*r;
+  const h=Math.sin(dp/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dl/2)**2;
+  return 2*6371*Math.asin(Math.sqrt(h));}
+const mode=()=>document.querySelector('input[name=m]:checked').value;
+
+function prep(a,path){
+  a.path=path;a.cum=[0];
+  for(let i=1;i<path.length;i++)a.cum.push(a.cum[i-1]+hav(path[i-1][0],path[i-1][1],path[i][0],path[i][1]));
+  a.len=a.cum[a.cum.length-1]||1e-9;
+}
+function posAt(a,f){
+  const t=f*a.len;let i=1;
+  while(i<a.cum.length-1&&a.cum[i]<t)i++;
+  const s=(a.cum[i]-a.cum[i-1])||1e-9,u=Math.min(1,Math.max(0,(t-a.cum[i-1])/s));
+  const p0=a.path[i-1],p1=a.path[i];
+  return[p0[0]+(p1[0]-p0[0])*u,p0[1]+(p1[1]-p0[1])*u];
+}
+
+function cover(list){
+  let ok=0,tot=0;
+  for(let i=0;i<20;i++)for(let j=0;j<24;j++){
+    const lat=B.latMax-(j+.5)/24*(B.latMax-B.latMin);
+    const lon=B.lonMin+(i+.5)/20*(B.lonMax-B.lonMin);
+    tot++;
+    if(list.some(a=>hav(lat,lon,a.lat,a.lon)<=R))ok++;
+  }
+  return Math.round(ok/tot*100);
+}
+
+/* ---------- Regla de asignación ---------- */
+function plan(){
+  const n=+$('sev').value,t=acc.tab;
+  const rows=amb.map((a,i)=>{
+    const dl=hav(a.lat,a.lon,acc.lat,acc.lon);
+    const real=t&&t.dur[i]!=null;
+    return{a,d:(t&&t.dist[i]!=null)?t.dist[i]/1000:dl,eta:real?t.dur[i]/60:dl*1.3/30*60};
+  }).sort((x,y)=>x.eta-y.eta);
+  const all=rows.filter(r=>r.a.st==='libre');
+  const rule=all.slice(0,n);
+  const fl=all.map(r=>r.a);
+  return{rows,all,rule,before:cover(fl),afterRule:cover(fl.filter(a=>!rule.some(r=>r.a===a)))};
+}
+
+function sentIds(){
+  if(!acc)return new Set();
+  if(sim)return new Set(sim.sent.map(a=>a.id));
+  const p=plan();
+  return new Set((mode()==='today'?p.all:p.rule).map(r=>r.a.id));
+}
+
+/* ---------- Dibujo ---------- */
+function draw(){
+  lg.clearLayers();
+  const sd=sentIds();
+  amb.forEach(a=>{
+    if(a.st==='libre'&&!sd.has(a.id))
+      L.circle([a.lat,a.lon],{radius:R*1000,color:'#1a9b55',weight:1,dashArray:'4 4',fillColor:'#1a9b55',fillOpacity:.1,interactive:false}).addTo(lg);
+  });
+  if(acc){
+    amb.forEach(a=>{
+      if(sd.has(a.id))
+        L.polyline(a.path||[[a.lat,a.lon],[acc.lat,acc.lon]],{color:'#d8352f',weight:a.path?4:2,opacity:.85,dashArray:a.path?null:'6 5',interactive:false}).addTo(lg);
+    });
+    L.marker([acc.lat,acc.lon],{icon:icon('acc','!'),interactive:false}).addTo(lg);
+  }
+  amb.forEach(a=>L.marker([a.lat,a.lon],{icon:icon('s-'+a.st,String(a.id).slice(0,3)),interactive:false}).addTo(lg));
+}
+
+function panel(){
+  const el=$('res'),go=$('go');
+  if(!acc){el.innerHTML='<p class="mut">👆 Toca el mapa para reportar un accidente.</p>';go.disabled=true;return}
+  go.disabled=!!sim;
+  const p=sim?sim.p:plan(),sd=sentIds(),n=p.rule.length,hoy=mode()==='today';
+  const st={libre:'Libre',camino:'En camino',sitio:'En sitio'};
+  const src=acc.tab?'rutas reales por calles (OSRM)':acc.err?'estimación en línea recta ×1.3 (OSRM no respondió)':'calculando con OSRM…';
+  let c=`<table class="cmp"><tr><th></th><th class="${hoy?'on':''}">Hoy (van todas)</th><th class="${hoy?'':'on'}">Con regla</th></tr>
+  <tr><td>Enviadas</td><td>${p.all.length}</td><td>${n}</td></tr>
+  <tr><td>Quedan libres</td><td>0</td><td>${p.all.length-n}</td></tr>
+  <tr><td>Cobertura ≤ ${R} km</td><td>0%</td><td>${p.afterRule}%</td></tr></table>
+  <p class="mut">Cobertura antes del accidente: ${p.before}%. La primera ambulancia llega en ~${Math.round(p.rule[0].eta)} min en ambos casos.<br>Tiempos: ${src}.</p>`;
+  if(sim&&sim.pending)c+='<p class="mut">⏳ Calculando rutas con OSRM (máx. 1 consulta por segundo)…</p>';
+  let t='<table><tr><th>Unidad</th><th>Dist.</th><th>ETA</th><th>Estado</th></tr>';
+  p.rows.forEach(r=>{
+    const a=r.a,s=sd.has(a.id);
+    const txt=sim?(s?(sim.pending?'Calculando ruta…':st[a.st]):'Libre'):(s?'Se enviaría':'Queda libre');
+    t+=`<tr class="${s?'on':''}"><td>${a.id}</td><td>${r.d.toFixed(1)} km</td><td>${Math.round(r.eta)} min</td><td>${txt}</td></tr>`;
+  });
+  el.innerHTML=c+t+'</table>';
+}
+
+/* ---------- GPS reales (Traccar) ---------- */
+let live=null;
+async function tcPoll(){
+  const L0=live;
+  try{
+    const h={Authorization:'Bearer '+L0.tok};
+    const [d,p]=await Promise.all(['/api/devices','/api/positions'].map(u=>fetch(L0.url+u,{headers:h}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})));
+    if(live!==L0)return;
+    const pos={};p.forEach(x=>pos[x.deviceId]=x);
+    L0.list=d.filter(x=>pos[x.id]).sort((a,b)=>a.id-b.id).map(x=>({did:x.id,id:x.name||('G'+x.id),lat:pos[x.id].latitude,lon:pos[x.id].longitude}));
+    $('tcSt').textContent='✅ Conectado: '+L0.list.length+' GPS con posición ('+new Date().toLocaleTimeString()+').';
+    if(sim){
+      L0.list.forEach(o=>{
+        const a=amb.find(z=>z.did===o.did);
+        if(!a)return;
+        a.lat=o.lat;a.lon=o.lon;
+        if(a.st==='camino'&&sim.sent.includes(a)&&hav(a.lat,a.lon,acc.lat,acc.lon)<0.1)a.st='sitio';
+      });
+      if(!sim.pending){draw();panel()}
+    }else if(L0.list.length){
+      const mv=L0.list.length!==amb.length||L0.list.some((o,i)=>amb[i].did!==o.did||hav(o.lat,o.lon,amb[i].lat,amb[i].lon)>0.2);
+      if(mv){
+        amb=L0.list.map(o=>({did:o.did,id:o.id,lat:o.lat,lon:o.lon,st:'libre',eta:0}));
+        if(acc){acc.tab=null;acc.err=false;fetchTable(acc)}
+        draw();panel();
+      }
+    }
+  }catch(e){if(live===L0)$('tcSt').textContent='⚠️ No se pudo leer Traccar ('+e.message+'). Revisa URL, token y CORS (web.origin).'}
+}
+
+/* ---------- Despacho y animación ---------- */
+async function dispatch(){
+  if(!acc||sim)return;
+  const p=plan(),sent=(mode()==='today'?p.all:p.rule),id=++run;
+  sim={p,sent:sent.map(r=>r.a),t0:null,pending:true};
+  draw();panel();
+  for(const r of sent){
+    const a=r.a;
+    let path=[[a.lat,a.lon],[acc.lat,acc.lon]],eta=r.eta;
+    try{
+      const j=await osrm(`/route/v1/driving/${ll(a.lon,a.lat)};${ll(acc.lon,acc.lat)}?overview=full&geometries=geojson`);
+      if(j.code==='Ok'){
+        const rt=j.routes[0];
+        path=[[a.lat,a.lon],...rt.geometry.coordinates.map(c=>[c[1],c[0]]),[acc.lat,acc.lon]];
+        eta=rt.duration/60;
+      }
+    }catch(e){}
+    if(id!==run)return;
+    a.eta=Math.max(eta,0.2);prep(a,path);
+    draw();
+  }
+  if(id!==run)return;
+  sim.pending=false;sim.t0=performance.now();
+  sent.forEach(r=>r.a.st='camino');
+  draw();panel();requestAnimationFrame(tick);
+}
+
+function tick(now){
+  if(!sim||sim.pending||live)return;
+  let moving=false;
+  sim.sent.forEach(a=>{
+    if(a.st==='sitio')return;
+    const pr=Math.min(1,Math.max(0,(now-sim.t0)/1000*SPEED/a.eta));
+    [a.lat,a.lon]=posAt(a,pr);
+    if(pr>=1)a.st='sitio';else moving=true;
+  });
+  draw();panel();
+  if(moving)requestAnimationFrame(tick);
+}
+
+function init(){
+  run++;
+  amb=((live&&live.list.length)?live.list:SEED.map(s=>({id:s[0],lat:s[1],lon:s[2]}))).map(o=>({did:o.did,id:o.id,lat:o.lat,lon:o.lon,st:'libre',eta:0}));
+  acc=null;sim=null;draw();panel();
+}
+
+map.on('click',e=>{
+  if(sim)return;
+  acc={lat:e.latlng.lat,lon:e.latlng.lng,tab:null,err:false};
+  draw();panel();fetchTable(acc);
+});
+const refresh=()=>{if(!sim){draw();panel()}};
+$('sev').addEventListener('change',refresh);
+document.querySelectorAll('input[name=m]').forEach(r=>r.addEventListener('change',refresh));
+$('go').addEventListener('click',dispatch);
+$('reset').addEventListener('click',init);
+$('tcBtn').addEventListener('click',()=>{
+  if(live){clearInterval(live.timer);live=null;$('tcBtn').textContent='Conectar';$('tcSt').textContent='Desconectado: se usan ambulancias simuladas.';init();return}
+  const url=$('tcUrl').value.trim().replace(/\/+$/,''),tok=$('tcTok').value.trim();
+  if(!url||!tok){$('tcSt').textContent='Escribe la URL del servidor y el token.';return}
+  live={url,tok,list:[],timer:null};
+  $('tcBtn').textContent='Desconectar';$('tcSt').textContent='Conectando…';
+  tcPoll();live.timer=setInterval(tcPoll,10000);
+});
+init();
+</script>
+</body>
+</html>

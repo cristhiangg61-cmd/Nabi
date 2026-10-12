@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taller 3 — Automatización y Control I</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{Vo:'V_o',Vi:'V_i',hl:['{\\color[RGB]{224,122,47}{#1}}',1],hb:['{\\color[RGB]{59,154,225}{#1}}',1]}},svg:{fontCache:'global'}};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<style>
+:root{--bg:#eef2f5;--grid:#dfe7eb;--sf:#fff;--sf2:#f6f8f9;--bd:#d6dee2;--tx:#16222b;--dim:#5a6b74;--cu:#b5651d;--g:#2f8f5b;--a:#a67c1a;--r:#b23a3a;--gfill:rgba(47,143,91,.10);--rfill:rgba(178,58,58,.10);--fd:'Space Grotesk',sans-serif;--fm:'IBM Plex Mono',monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161a;--grid:#1a2227;--sf:#161e23;--sf2:#1c262b;--bd:#2a363c;--tx:#e7eef1;--dim:#92a5ad;--cu:#e0a358;--g:#6fd3a0;--a:#e8c468;--r:#e2807f;--gfill:rgba(111,211,160,.10);--rfill:rgba(226,128,127,.12)}}
+:root[data-theme="dark"]{--bg:#10161a;--grid:#1a2227;--sf:#161e23;--sf2:#1c262b;--bd:#2a363c;--tx:#e7eef1;--dim:#92a5ad;--cu:#e0a358;--g:#6fd3a0;--a:#e8c468;--r:#e2807f;--gfill:rgba(111,211,160,.10);--rfill:rgba(226,128,127,.12)}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+body{margin:0;background:var(--bg) center/28px 28px repeating-linear-gradient(0deg,var(--grid) 0 1px,transparent 1px 28px),repeating-linear-gradient(90deg,var(--grid) 0 1px,transparent 1px 28px);color:var(--tx);font-family:var(--fd);line-height:1.55;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.w{max-width:780px;margin:0 auto;padding:2rem 1.1rem 4rem}
+.k{font-family:var(--fm);font-size:.78rem;color:var(--cu)}h1{font-size:1.55rem;margin:.3rem 0}
+.sub,.note{color:var(--dim);font-size:.9rem}.note{margin:.4rem 0}
+.nav{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0}
+.chip,.nav a{font-family:var(--fm);font-size:.82rem;padding:.4rem .8rem;border:1px solid var(--bd);border-radius:999px;background:var(--sf);color:var(--tx);text-decoration:none;cursor:pointer}
+.chip.on{border-color:var(--cu);color:var(--cu)}
+.c{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:1.2rem 1.3rem;margin:1.1rem 0}
+.c h2{font-size:1.1rem;margin:0 0 .6rem}
+.st{display:flex;gap:.8rem;margin:1.1rem 0}.st>i{flex:0 0 1.8rem;height:1.8rem;border-radius:50%;background:var(--sf2);border:1px solid var(--bd);color:var(--cu);font:normal .85rem var(--fm);display:flex;align-items:center;justify-content:center}
+.st>div{flex:1;min-width:0}.st p{margin:.2rem 0}
+.eq{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:.6rem .9rem;margin:.45rem 0;overflow-x:auto}
+.res{border:1.5px solid var(--g);background:var(--sf2);border-radius:10px;padding:1rem 1.1rem;margin:1rem 0}
+.tip{font-size:.87rem;color:var(--dim);border-left:3px solid var(--cu);padding-left:.7rem;margin:.5rem 0}
+details.g{border:1px solid var(--bd);border-radius:8px;margin:.7rem 0;background:var(--sf)}
+details.g summary{cursor:pointer;padding:.7rem .9rem;display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap}
+.gb{padding:0 1rem .9rem}
+.bd{font-family:var(--fm);font-size:.78rem;padding:.2rem .6rem;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.e{color:var(--g)}.cr{color:var(--a)}.i{color:var(--r)}
+table{width:100%;border-collapse:collapse;font-size:.85rem}td,th{padding:.45rem .4rem;border-bottom:1px solid var(--bd);text-align:left}th{color:var(--dim);font-weight:500;font-size:.75rem}
+canvas{width:100%;display:block;border:1px solid var(--bd);border-radius:8px;background:var(--sf2)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}@media(max-width:560px){.row{grid-template-columns:1fr}}
+.sl{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:center;font-family:var(--fm);font-size:.85rem;margin:.4rem 0}.sl input{width:100%;accent-color:var(--cu)}
+.out{font-family:var(--fm);font-size:.88rem;margin:.5rem 0}
+input[type=search]{width:100%;padding:.55rem .7rem;border-radius:7px;border:1px solid var(--bd);background:var(--sf2);color:var(--tx);font:.9rem var(--fm)}
+.dt{padding:.55rem 0;border-bottom:1px solid var(--bd);font-size:.9rem}.dt b{color:var(--cu);display:block;font-family:var(--fm);font-size:.85rem}.dt span{color:var(--dim)}
+footer{color:var(--dim);font-size:.8rem;text-align:center;margin-top:2rem}
+</style>
+</head>
+<body>
+<div class="w">
+<div class="k">Automatización y Control I · Taller No. 3</div>
+<h1>Taller 3, resuelto paso a paso ✍️</h1>
+<p class="sub">Vamos con calma: cada despeje y cada sustitución está resaltado con color para que veas <em>qué se reemplazó por qué</em>. Al final hay un laboratorio para jugar con los polos y un diccionario.</p>
+<nav class="nav"><a href="#p1">1 · Circuito LC</a><a href="#p2">2 · Polos y estabilidad</a><a href="#lab">Laboratorio</a><a href="#dic">Diccionario</a></nav>
+
+<div class="c" id="p1">
+<h2>Punto 1 — Circuito LC (Vo en el capacitor)</h2>
+<p class="note" style="margin-top:0">Nos piden la ecuación diferencial y la función de transferencia. Receta de siempre: <b>KVL → leyes de cada elemento → E.D. → Laplace → G(s)</b>.</p>
+
+<div class="st"><i>1</i><div><p><b>Variables.</b> Es un circuito serie: una sola corriente \(i(t)\) recorre todo. Entrada \(\Vi(t)\); salida \(\Vo(t)=V_C(t)\).</p></div></div>
+
+<div class="st"><i>2</i><div><p><b>KVL</b> (suma de voltajes de la malla = 0):</p>
+<div class="eq">\[-\Vi(t)+V_L(t)+V_C(t)=0\;\Rightarrow\;V_L(t)+V_C(t)=\Vi(t)\]</div></div></div>
+
+<div class="st"><i>3</i><div><p><b>Leyes de los elementos</b> y sustitución en la KVL:</p>
+<div class="eq">\[V_L=L\frac{di(t)}{dt}\qquad V_C=\frac1C\int i(t)\,dt\]\[\hl{L\frac{di(t)}{dt}}+\hb{\frac1C\int i(t)\,dt}=\Vi(t)\]</div></div></div>
+
+<div class="st"><i>4</i><div><p><b>Eliminar \(i(t)\).</b> Como \(\Vo=V_C\), derivamos para despejar la corriente:</p>
+<div class="eq">\[\Vo=\frac1C\int i\,dt\;\Rightarrow\;\frac{d\Vo}{dt}=\frac{i}{C}\;\Rightarrow\;\hb{i=C\frac{d\Vo}{dt}}\;\Rightarrow\;\hl{\frac{di}{dt}=C\frac{d^2\Vo}{dt^2}}\]</div>
+<p class="tip">Ojo: derivar una integral "la deshace". Por eso el segundo término de (3) vuelve a ser simplemente \(\Vo\).</p></div></div>
+
+<div class="st"><i>5</i><div><p><b>Sustituir</b> lo naranja en la ecuación de (3) y normalizar (dividir entre \(LC\)):</p>
+<div class="eq">\[L\,\hl{C\frac{d^2\Vo}{dt^2}}+\hb{\Vo}=\Vi\;\Rightarrow\;LC\,\Vo''(t)+\Vo(t)=\Vi(t)\]\[\boxed{\;\Vo''(t)+\frac1{LC}\Vo(t)=\frac1{LC}\Vi(t)\;}\quad\text{(E.D. de 2° orden)}\]</div></div></div>
+
+<div class="st"><i>6</i><div><p><b>Laplace</b> (notación del profe: \(V_o[0]=V_o(t=0)\)), con condiciones iniciales en reposo:</p>
+<div class="eq">\[\mathcal L[\Vo'']=s^2V_o(s)-sV_o[0]-V_o'[0]\;\xrightarrow{\;V_o[0]=V_o'[0]=0\;}\;s^2V_o(s)\]\[s^2V_o(s)+\frac1{LC}V_o(s)=\frac1{LC}V_i(s)\]</div></div></div>
+
+<div class="st"><i>7</i><div><p><b>Factorizar y despejar:</b></p>
+<div class="eq">\[V_o(s)\left[s^2+\frac1{LC}\right]=\frac1{LC}V_i(s)\]</div></div></div>
+
+<div class="res"><div class="k" style="color:var(--g)">Resultado</div>
+\[G(s)=\frac{V_o(s)}{V_i(s)}=\frac{1/LC}{s^2+1/LC}=\frac{1}{LCs^2+1}\]
+<p class="tip" style="border-color:var(--g)">✅ <b>Verificación por impedancias</b> (atajo): \(G=\dfrac{Z_C}{Z_L+Z_C}=\dfrac{1/Cs}{Ls+1/Cs}=\dfrac1{LCs^2+1}\). Mismo resultado.</p></div>
+
+<p><b>¿Qué significa?</b> El denominador \(s^2+\frac1{LC}=0\) da \(s=\pm j\omega_n\) con \(\omega_n=\frac1{\sqrt{LC}}\): sin resistencia no hay quién disipe energía, así que es un <b>oscilador puro</b> (el RLC con \(R=0\)). Ante un escalón unitario:</p>
+<div class="eq">\[V_o(s)=\frac1s\cdot\frac{\omega_n^2}{s^2+\omega_n^2}=\frac1s-\frac{s}{s^2+\omega_n^2}\;\Rightarrow\;V_o(t)=1-\cos(\omega_n t)\]</div>
+
+<h2 style="font-size:1rem;margin-top:1rem">🎛 Plus: juega con L y C</h2>
+<div class="sl"><span>L</span><input type="range" id="Ls" min="1" max="1000" value="100" oninput="lc()"><span id="Lv"></span></div>
+<div class="sl"><span>C</span><input type="range" id="Cs" min="1" max="1000" value="10" oninput="lc()"><span id="Cv"></span></div>
+<div class="out" id="lcout"></div><canvas id="lcp"></canvas>
+<p class="note">Más L o más C → frecuencia más baja (oscila más lento). La amplitud nunca cambia: no hay pérdidas.</p>
+</div>
+
+<div class="c" id="p2">
+<h2>Punto 2 — Polos y estabilidad</h2>
+<p class="note" style="margin-top:0">Receta de 3 pasos: <b>① igualar el denominador a 0 → ② despejar \(s\) (los polos) → ③ mirar la parte real \(\sigma\)</b>.</p>
+<table><tr><th>Si los polos están…</th><th>Veredicto</th></tr>
+<tr><td>Todos con \(\sigma<0\) (semiplano izquierdo)</td><td class="e">Estable</td></tr>
+<tr><td>Alguno con \(\sigma=0\) simple (sobre el eje \(j\omega\)) y ninguno con \(\sigma>0\)</td><td class="cr">Críticamente estable</td></tr>
+<tr><td>Alguno con \(\sigma>0\) (semiplano derecho)</td><td class="i">Inestable</td></tr></table>
+
+<details class="g"><summary><span>\(G_1(s)=\dfrac{5}{s+4}\)</span><span class="bd e">Estable</span></summary><div class="gb">
+<div class="eq">\[s+4=0\;\Rightarrow\;\hl{s=-4}\]</div>
+<p>Un polo real en \(-4\): eje real negativo, \(\sigma=-4<0\) ✅ <b>estable</b>. Constante de tiempo \(\tau=\frac1{4}=0.25\) s; ante escalón: \(y(t)=\frac54\left(1-e^{-4t}\right)\).</p></div></details>
+
+<details class="g"><summary><span>\(G_2(s)=\dfrac{3}{s}\)</span><span class="bd cr">Críticamente estable</span></summary><div class="gb">
+<div class="eq">\[s=0\;\Rightarrow\;\hl{s=0}\]</div>
+<p>Polo simple en el origen (\(\sigma=0\)): está justo en la frontera → <b>críticamente estable</b>. Es un <em>integrador</em>: ante un escalón, \(Y(s)=\frac3{s^2}\Rightarrow y(t)=3t\), crece sin parar. Por eso se dice que "aguanta" pero no es amigable.</p></div></details>
+
+<details class="g"><summary><span>\(G_3(s)=\dfrac{5}{s^2-s-6}\)</span><span class="bd i">Inestable</span></summary><div class="gb">
+<div class="eq">\[s^2-s-6=0\;\Rightarrow\;s=\frac{-(\hl{-1})\pm\sqrt{(-1)^2-4(1)(\hl{-6})}}{2(1)}=\frac{1\pm\sqrt{25}}{2}\]\[\hl{s_1=3}\qquad\hl{s_2=-2}\]</div>
+<p>Comprobación: \((s-3)(s+2)=s^2-s-6\) ✓. Hay un polo en \(+3\) (\(\sigma>0\)) → <b>inestable</b>. Con fracciones parciales, la respuesta al impulso es \(g(t)=e^{3t}-e^{-2t}\): el \(e^{3t}\) se dispara.</p></div></details>
+
+<details class="g"><summary><span>\(G_4(s)=\dfrac{9}{s^2+2s+9}\)</span><span class="bd e">Estable</span></summary><div class="gb">
+<div class="eq">\[s=\frac{-2\pm\sqrt{2^2-4(1)(9)}}{2}=\frac{-2\pm\sqrt{-32}}{2}=\hl{-1\pm j\sqrt8}\approx-1\pm j2.83\]</div>
+<p>Par complejo conjugado con \(\sigma=-1<0\) → <b>estable</b>. Comparando con \(s^2+2\zeta\omega_ns+\omega_n^2\): \(\omega_n=3\), \(2\zeta\omega_n=2\Rightarrow\zeta=\frac13\) (subamortiguado), \(\omega_d=\sqrt8\approx2.83\) rad/s y sobreimpulso \(M_p=e^{-\pi\zeta/\sqrt{1-\zeta^2}}\approx33\%\).</p></div></details>
+
+<details class="g"><summary><span>\(G_5(s)=\dfrac{16}{s^2+16}\)</span><span class="bd cr">Críticamente estable</span></summary><div class="gb">
+<div class="eq">\[s^2+16=0\;\Rightarrow\;s^2=-16\;\Rightarrow\;\hl{s=\pm j4}\]</div>
+<p>\(\sigma=0\): polos imaginarios puros, sobre el eje → <b>críticamente estable</b>. Oscila sin apagarse a \(\omega_n=4\) rad/s (\(T=\frac{2\pi}{4}\approx1.57\) s). 🎯 Es exactamente la forma del Punto 1 con \(\frac1{LC}=16\).</p></div></details>
+
+<table style="margin-top:1rem"><tr><th>G(s)</th><th>Polos</th><th>Ubicación</th><th>Veredicto</th></tr>
+<tr><td>G₁</td><td>−4</td><td>Eje real, izq.</td><td class="e">Estable</td></tr>
+<tr><td>G₂</td><td>0</td><td>Origen</td><td class="cr">Crít. estable</td></tr>
+<tr><td>G₃</td><td>3 y −2</td><td>Uno der., uno izq.</td><td class="i">Inestable</td></tr>
+<tr><td>G₄</td><td>−1 ± j2.83</td><td>Complejos, izq.</td><td class="e">Estable</td></tr>
+<tr><td>G₅</td><td>±j4</td><td>Sobre eje jω</td><td class="cr">Crít. estable</td></tr></table>
+</div>
+
+<div class="c" id="lab">
+<h2>🧪 Laboratorio de polos (plus)</h2>
+<p class="note" style="margin-top:0">Elige un sistema: ves dónde están sus polos en el plano \(s\) (verde = estable, rojo = inestable, línea ámbar = frontera) y su respuesta ante un escalón unitario.</p>
+<div class="nav" id="chips"></div>
+<div id="cust" style="display:none">
+<div class="sl"><span>σ</span><input type="range" id="sg" min="-5" max="2" step="0.05" value="-1" oninput="draw()"><span id="sgv"></span></div>
+<div class="sl"><span>ω</span><input type="range" id="wg" min="0" max="6" step="0.05" value="3" oninput="draw()"><span id="wgv"></span></div></div>
+<div class="out" id="info"></div>
+<div class="row"><canvas id="pl"></canvas><canvas id="stp"></canvas></div>
+<p class="note" id="nt"></p>
+</div>
+
+<div class="c" id="dic">
+<h2>📖 Diccionario de términos</h2>
+<input type="search" id="q" placeholder="Buscar: polo, estable, ζ…" oninput="dic()">
+<div id="dl"></div>
+</div>
+
+<footer>Taller 3 · KVL → E.D. → Laplace → G(s) → polos → estabilidad</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id),cv=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
+const fm=x=>(Math.abs(x)>=1e4||(x!==0&&Math.abs(x)<.01))?x.toExponential(1):String(+x.toPrecision(3));
+const f2=x=>String(+x.toFixed(2));
+function sim(a,b0,T,N=500){const n=a.length,h=T/N;let x=new Array(n).fill(0);const ys=[0];
+const f=x=>{const d=new Array(n);for(let i=0;i<n-1;i++)d[i]=x[i+1];let s=b0;for(let i=0;i<n;i++)s-=a[i]*x[i];d[n-1]=s;return d};
+for(let k=0;k<N;k++){const k1=f(x),k2=f(x.map((v,i)=>v+h/2*k1[i])),k3=f(x.map((v,i)=>v+h/2*k2[i])),k4=f(x.map((v,i)=>v+h*k3[i]));x=x.map((v,i)=>v+h/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));ys.push(x[0])}return ys}
+function plot(c,ys,T,ref,u){const W=c.width=c.clientWidth||320,H=c.height=210,g=c.getContext('2d');g.clearRect(0,0,W,H);
+let lo=Math.min(0,...ys),hi=Math.max(0,...ys);if(ref!=null){lo=Math.min(lo,ref);hi=Math.max(hi,ref)}if(hi-lo<1e-9){hi+=1;lo-=1}
+const m=(hi-lo)*.08;lo-=m;hi+=m;const L=40,R=8,t=8,b=20,pw=W-L-R,ph=H-t-b,Y=v=>t+ph-(v-lo)/(hi-lo)*ph;
+g.strokeStyle=cv('--bd');g.lineWidth=1;g.beginPath();g.moveTo(L,t);g.lineTo(L,H-b);g.lineTo(W-R,H-b);g.moveTo(L,Y(0));g.lineTo(W-R,Y(0));g.stroke();
+if(ref!=null){g.strokeStyle=cv('--dim');g.beginPath();g.moveTo(L,Y(ref));g.lineTo(W-R,Y(ref));g.stroke()}
+g.strokeStyle=cv('--cu');g.lineWidth=2;g.beginPath();ys.forEach((v,i)=>{const x=L+i/(ys.length-1)*pw;i?g.lineTo(x,Y(v)):g.moveTo(x,Y(v))});g.stroke();
+g.fillStyle=cv('--dim');g.font='11px IBM Plex Mono,monospace';g.fillText(fm(hi),2,t+8);g.fillText(fm(lo),2,H-b);g.fillText('0',L,H-5);g.fillText(fm(T)+u,W-R-60,H-5)}
+function plane(c,P,col){const W=c.width=c.clientWidth||320,H=c.height=210,g=c.getContext('2d'),x0=-6,x1=4,y0=-6.5,y1=6.5,X=v=>(v-x0)/(x1-x0)*W,Y=v=>H-(v-y0)/(y1-y0)*H;
+g.clearRect(0,0,W,H);g.fillStyle=cv('--gfill');g.fillRect(0,0,X(0),H);g.fillStyle=cv('--rfill');g.fillRect(X(0),0,W-X(0),H);
+g.strokeStyle=cv('--bd');g.lineWidth=1;for(let v=-6;v<=4;v+=2){g.beginPath();g.moveTo(X(v),0);g.lineTo(X(v),H);g.stroke()}for(let v=-6;v<=6;v+=2){g.beginPath();g.moveTo(0,Y(v));g.lineTo(W,Y(v));g.stroke()}
+g.strokeStyle=cv('--a');g.lineWidth=2.5;g.beginPath();g.moveTo(X(0),0);g.lineTo(X(0),H);g.stroke();
+g.strokeStyle=cv('--dim');g.lineWidth=1.5;g.beginPath();g.moveTo(0,Y(0));g.lineTo(W,Y(0));g.stroke();
+g.fillStyle=cv('--dim');g.font='10px IBM Plex Mono,monospace';for(let v=-6;v<=4;v+=2)if(v)g.fillText(v,X(v)+2,Y(0)+11);for(let v=-6;v<=6;v+=2)if(v)g.fillText('j'+v,X(0)+3,Y(v)-2);
+g.fillText('Re',W-16,Y(0)-4);g.fillText('estable',4,H-5);g.fillText('inestable',W-56,H-5);
+g.strokeStyle=col;g.lineWidth=3;P.forEach(([p,q])=>{const x=X(p),y=Y(q),r=7;g.beginPath();g.moveTo(x-r,y-r);g.lineTo(x+r,y+r);g.moveTo(x+r,y-r);g.lineTo(x-r,y+r);g.stroke()})}
+const V={e:['Estable','--g'],c:['Críticamente estable','--a'],i:['Inestable','--r']};
+const S={
+G1:{t:'G₁',a:[4],b:5,P:[[-4,0]],T:1.5,v:'e',ref:1.25,n:'Un polo real negativo: sube suave y se asienta en 5/4 = 1.25 (línea gris).'},
+G2:{t:'G₂',a:[0],b:3,P:[[0,0]],T:5,v:'c',n:'Integrador: con escalón la salida crece como 3t sin parar.'},
+G3:{t:'G₃',a:[-6,-1],b:5,P:[[3,0],[-2,0]],T:2,v:'i',n:'El polo en +3 domina: la respuesta se dispara como e³ᵗ.'},
+G4:{t:'G₄',a:[9,2],b:9,P:[[-1,2.83],[-1,-2.83]],T:6,v:'e',ref:1,n:'Oscila y se amortigua hacia 1 (ζ = ⅓, sobreimpulso ≈ 33 %).'},
+G5:{t:'G₅',a:[16,0],b:16,P:[[0,4],[0,-4]],T:6.3,v:'c',ref:1,n:'Oscila para siempre alrededor de 1 a 4 rad/s: ni crece ni se apaga.'}};
+let cur='G1';
+function sel(k){cur=k;document.querySelectorAll('#chips .chip').forEach(b=>b.classList.toggle('on',b.dataset.k===k));$('cust').style.display=k==='X'?'block':'none';draw()}
+function draw(){let s;if(cur==='X'){const sg=+$('sg').value,w=+$('wg').value,q=sg*sg+w*w||1;
+const v=sg<-.001?'e':(sg>.001||(w<.001&&Math.abs(sg)<=.001))?'i':'c';let T=Math.abs(sg)>.05?Math.min(6/Math.abs(sg),40):20;if(w>.2)T=Math.min(Math.max(T,6*Math.PI/w),40);
+s={t:'Tu sistema',a:[sg*sg+w*w,-2*sg],b:q,P:w>.001?[[sg,w],[sg,-w]]:[[sg,0],[sg,0]],T,v,ref:sg<-.001?1:null,n:'Mueve σ (parte real) y ω (parte imaginaria): σ<0 amortigua, σ=0 oscila sin fin, σ>0 explota. Más ω = oscila más rápido.'};
+$('sgv').textContent=sg.toFixed(2);$('wgv').textContent=w.toFixed(2)}else s=S[cur];
+const [lb,cl]=V[s.v];$('info').innerHTML=`<b style="color:${cv(cl)}">${lb}</b> · polos: `+s.P.filter((p,i,A)=>!(p[1]<0)).map(([p,q])=>q>0?`${f2(p)} ± j${f2(q)}`:f2(p)).join(' , ');
+$('nt').textContent=s.n;plane($('pl'),s.P,cv(cl));plot($('stp'),sim(s.a,s.b,s.T),s.T,s.ref,' s')}
+function lc(){const L=+$('Ls').value*1e-3,C=+$('Cs').value*1e-6,w=1/Math.sqrt(L*C),T=2*Math.PI/w;$('Lv').textContent=$('Ls').value+' mH';$('Cv').textContent=$('Cs').value+' µF';
+$('lcout').textContent=`ωn = ${fm(w)} rad/s · f = ${fm(w/2/Math.PI)} Hz · T = ${fm(T*1e3)} ms`;
+const ys=[];for(let i=0;i<=300;i++)ys.push(1-Math.cos(3*2*Math.PI*i/300));plot($('lcp'),ys,3*T*1e3,1,' ms')}
+const D=[['Polo','Valor de s que hace cero el denominador de G(s). Define cómo es la respuesta.'],['Cero','Valor de s que hace cero el numerador de G(s).'],['Función de transferencia G(s)','Cociente Vo(s)/Vi(s) con condiciones iniciales en cero.'],['Plano complejo s','Plano con eje real σ (horizontal) y eje imaginario jω (vertical) donde se ubican los polos.'],['σ (parte real)','Si es negativa la respuesta se apaga como e^(σt); si es positiva crece.'],['jω (parte imaginaria)','Da la frecuencia de oscilación de la respuesta.'],['Semiplano izquierdo / derecho','σ<0 (zona estable) / σ>0 (zona inestable).'],['Estable','Todos los polos con σ<0: la respuesta se apaga y vuelve al reposo.'],['Críticamente estable','Polos simples sobre el eje jω y ninguno en σ>0: ni se apaga ni crece (oscila o se queda).'],['Inestable','Algún polo con σ>0 (o repetido sobre el eje jω): la respuesta crece sin límite.'],['Frecuencia natural ωn','Frecuencia a la que oscilaría el sistema sin amortiguamiento. En el LC: 1/√(LC).'],['Factor de amortiguamiento ζ','Cociente adimensional que mide cuánto se amortigua: ζ=0 oscila sin fin, 0<ζ<1 subamortiguado, ζ=1 crítico, ζ>1 sobreamortiguado.'],['Frecuencia amortiguada ωd','ωn·√(1−ζ²): frecuencia real de oscilación cuando hay amortiguamiento.'],['Subamortiguado','ζ<1: polos complejos, oscila mientras se apaga.'],['Constante de tiempo τ','En un polo real −a: τ=1/a. En ≈4τ la respuesta está casi asentada.'],['Sobreimpulso Mp','Cuánto se pasa la respuesta del valor final: exp(−πζ/√(1−ζ²)).'],['Ecuación diferencial (E.D.)','Ecuación que relaciona una señal con sus derivadas; modela el sistema en el tiempo.'],['Transformada de Laplace','Convierte derivadas en multiplicaciones por s: L[f′]=sF(s)−f(0).'],['Condiciones iniciales','Valores en t=0. El profe los escribe Vo[0]=Vo(t=0). "En reposo" = todos cero.'],['KVL','Ley de voltajes de Kirchhoff: la suma de voltajes en una malla es cero.'],['Impedancia Z(s)','"Resistencia" en s: R, Ls para el inductor y 1/(Cs) para el capacitor.'],['Integrador','Sistema 1/s: su salida es la integral de la entrada; polo en el origen.'],['Respuesta al escalón','Salida cuando la entrada pasa de 0 a 1 en t=0; muestra a simple vista la estabilidad.'],['Oscilador LC','Circuito sin resistencia: intercambia energía entre L y C para siempre (polos ±jωn).']];
+function dic(){const q=$('q').value.toLowerCase();$('dl').innerHTML=D.filter(([a,b])=>(a+b).toLowerCase().includes(q)).map(([a,b])=>`<div class="dt"><b>${a}</b><span>${b}</span></div>`).join('')||'<p class="note">Sin resultados.</p>'}
+$('chips').innerHTML=['G1','G2','G3','G4','G5'].map(k=>`<span class="chip" data-k="${k}" onclick="sel('${k}')">${k.replace('G','G₁₂₃₄₅'[+k[1]-1]?'G':'G')}</span>`).join('').replace(/>G(\d)</g,(m,d)=>'>G'+'₁₂₃₄₅'[d-1]+'<')+'<span class="chip" data-k="X" onclick="sel(\'X\')">Personalizado</span>';
+window.addEventListener('resize',()=>{draw();lc()});dic();lc();sel('G1');
+</script>
+</body>
+</html>
