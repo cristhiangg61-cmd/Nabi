@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Para Sofi 💌</title>
+<style>
+:root{
+  --bg:#f6efe2; --card:#fffaf0; --ink:#2e3a26; --soft:#6b7a5c; --pink:#e58aa5; --olive:#4a5a3a; --line:#e3d8c3;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#232b1c; --card:#2f3a26; --ink:#f3ecdc; --soft:#b7c4a4; --pink:#f08fb0; --olive:#c8d6b0; --line:#44523a; }
+}
+:root[data-theme="dark"]{ --bg:#232b1c; --card:#2f3a26; --ink:#f3ecdc; --soft:#b7c4a4; --pink:#f08fb0; --olive:#c8d6b0; --line:#44523a; }
+*{ box-sizing:border-box; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:Georgia,"Times New Roman",serif; line-height:1.65; min-height:100vh; }
+main{ max-width:560px; margin:0 auto; padding:28px 20px 50px; text-align:center; }
+.bow{ width:84px; height:auto; margin:6px auto 0; display:block; animation:float 3.5s ease-in-out infinite; }
+@keyframes float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+h1{ font-size:2rem; margin:10px 0 4px; color:var(--olive); }
+.sub{ color:var(--soft); margin:0 0 22px; font-style:italic; }
+.counter{ display:inline-block; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:8px 18px; font-family:system-ui,sans-serif; font-size:.95rem; color:var(--soft); }
+.counter b{ color:var(--pink); font-size:1.15rem; }
+#open{ margin:28px auto 0; display:block; cursor:pointer; background:none; border:0; font:inherit; color:var(--ink); }
+#open svg{ width:150px; height:auto; transition:transform .2s; }
+#open:hover svg,#open:focus-visible svg{ transform:scale(1.06) rotate(-2deg); }
+#open span{ display:block; margin-top:6px; color:var(--soft); font-style:italic; }
+#letter{ display:none; margin-top:26px; text-align:left; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:26px 22px; }
+#letter.show{ display:block; animation:rise .6s ease; }
+@keyframes rise{ from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none} }
+#letter p{ margin:0 0 14px; }
+#letter .sig{ text-align:right; color:var(--pink); font-style:italic; margin-top:20px; }
+h2{ font-size:1.15rem; color:var(--olive); margin:22px 0 8px; }
+ul{ padding-left:20px; margin:0 0 14px; } li{ margin-bottom:8px; }
+.ask{ margin-top:28px; text-align:center; }
+.ask p{ font-size:1.2rem; color:var(--olive); margin:0 0 14px; }
+.btns{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.btns button{ cursor:pointer; font:inherit; border-radius:999px; padding:11px 22px; border:2px solid var(--pink); }
+#yes{ background:var(--pink); color:#fff; }
+#wait{ background:transparent; color:var(--ink); }
+#reply{ margin-top:18px; min-height:1.6em; color:var(--pink); font-style:italic; }
+.note{ margin-top:30px; font-family:system-ui,sans-serif; font-size:.75rem; color:var(--soft); }
+.heart{ position:fixed; bottom:-30px; font-size:22px; pointer-events:none; animation:up 3.2s linear forwards; }
+@keyframes up{ to{ transform:translateY(-110vh) rotate(25deg); opacity:0 } }
+</style>
+</head>
+<body>
+<main>
+  <svg class="bow" viewBox="0 0 120 70" aria-hidden="true">
+    <path d="M60 35 C40 6 6 6 8 34 C10 62 40 62 60 35Z" fill="#e58aa5" stroke="#b9526f" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M60 35 C80 6 114 6 112 34 C110 62 80 62 60 35Z" fill="#e58aa5" stroke="#b9526f" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="60" cy="35" r="9" fill="#f4b6c8" stroke="#b9526f" stroke-width="3"/>
+  </svg>
+  <h1>Para Sofi</h1>
+  <p class="sub">de tu Morchis, con el corazón en la mano</p>
+  <div class="counter">Llevamos <b id="days">…</b> días siendo novios</div>
+
+  <button id="open" type="button" aria-label="Abrir la carta">
+    <svg viewBox="0 0 160 110" aria-hidden="true">
+      <rect x="6" y="14" width="148" height="90" rx="10" fill="#fffaf0" stroke="#4a5a3a" stroke-width="4"/>
+      <path d="M8 18 L80 68 L152 18" fill="none" stroke="#4a5a3a" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M80 58 c-10-14-26-6-20 6 c4 8 20 18 20 18 s16-10 20-18 c6-12-10-20-20-6z" fill="#e58aa5" stroke="#b9526f" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
+    <span>Toca para abrir</span>
+  </button>
+
+  <section id="letter" aria-live="polite">
+    <p>Sofi,</p>
+    <p>Quería escribirte algo que de verdad se sintiera mío y no un simple “perdón” de pasada. Sé que te fallé, y lo primero que quiero hacer es reconocerlo sin excusas y sin dar vueltas.</p>
+    <p>Todo empezó en TikTok, entre lives, videos y risas. Después me pasaste tu número, jugamos Brawl y, sin darme cuenta, te volviste la persona con la que más quería estar y hablar. Me preguntaste si quería ser tu novio y el 2 de agosto de 2026 empezó una de las mejores cosas que me han pasado.</p>
+    <p>Pero entre la universidad, mi salud mental y mis proyectos personales, te he descuidado a ti y a nuestra relación, y eso no es justo contigo.</p>
+    <p>Dijiste que engañar a alguien que tanto te costó conseguir no tiene sentido. Yo pienso igual de ti: lo que tenemos me importa demasiado como para descuidarlo, y me duele haberte hecho sentir lo contrario.</p>
+    <h2>Lo que quiero hacer mejor</h2>
+    <ul>
+      <li>Hablarte a tiempo, incluso en semanas pesadas, para que nunca tengas que preguntarte si sigo ahí.</li>
+      <li>Escucharte de verdad cuando algo te moleste, sin ponerme a la defensiva.</li>
+      <li>Cuidarte tanto como tú me cuidas a mí, que ya me lo dijiste y me lo tomo en serio.</li>
+    </ul>
+    <p>Lo que necesitamos es tiempo para conocer las ideas del otro y, después, espacio para seguir conociéndonos como pareja.</p>
+    <p>Y sí, después de los parciales prometo lives, partidas de Brawl y una hamburguesa a tu nombre. 🍔</p>
+    <p>Te quiero mucho, Sofi. Gracias por darme la oportunidad de arreglarlo.</p>
+    <p class="sig">— Tu Morchis 💗</p>
+
+    <div class="ask">
+      <p>¿Me perdonas?</p>
+      <div class="btns">
+        <button id="yes" type="button">Sí, te perdono 💗</button>
+        <button id="wait" type="button">Necesito un ratito</button>
+      </div>
+      <div id="reply"></div>
+    </div>
+  </section>
+
+  <p class="note">Aviso: esta página le avisa a su creador cuando alguien la abre o responde.</p>
+</main>
+<script>
+(function(){
+  /* ====== CONFIGURACIÓN ====== */
+  // 1) Tema de ntfy: es como una contraseña. Cámbialo por uno tuyo (largo y difícil de adivinar)
+  //    y suscríbete al MISMO nombre en la app de ntfy.
+  var NTFY_TOPIC = "perdon-sofi-7k3q9xv2mw4t";
+  // 1b) Web3Forms (correo): entra a web3forms.com, escribe tu correo y te llega un "Access Key".
+  //     Pégalo aquí. Mientras diga PEGA_AQUI..., no se envía ningún correo (ntfy sigue funcionando).
+  var WEB3FORMS_KEY = "PEGA_AQUI_TU_ACCESS_KEY";
+  // 2) Códigos de enlace -> nombre. Enlaces: tusitio/?de=CODIGO
+  //    Ejemplo: https://TU-USUARIO.github.io/perdon-sofi/?de=sofi-x7f3q9
+  var PEOPLE = {
+    "sofi-x7f3q9": "Sofi",
+    "zara": "Zara",
+    "wendy": "Wendy"
+  };
+  /* =========================== */
+
+  var params = new URLSearchParams(location.search);
+  var de = (params.get('de') || '').trim().slice(0, 40);
+  var quien = PEOPLE[de.toLowerCase()] || (de ? 'Invitado “' + de + '”' : 'Alguien sin enlace personalizado');
+  var esSofi = (quien === 'Sofi');
+
+  var last = {};
+  function avisar(tipo, titulo, mensaje, prio, tags, correo){
+    var ahora = Date.now();
+    if (last[tipo] && ahora - last[tipo] < 4000) return;
+    last[tipo] = ahora;
+    try{
+      fetch('https://ntfy.sh', {
+        method: 'POST',
+        body: JSON.stringify({ topic: NTFY_TOPIC, title: titulo, message: mensaje, priority: prio, tags: tags })
+      }).catch(function(){});
+    }catch(e){}
+    // Correo (solo eventos importantes y si ya pegaste la clave)
+    if (correo && WEB3FORMS_KEY.indexOf('PEGA_AQUI') !== 0){
+      try{
+        fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            access_key: WEB3FORMS_KEY,
+            subject: titulo,
+            from_name: 'Página para Sofi',
+            message: mensaje + '\nQuién: ' + quien + '\nHora: ' + new Date().toLocaleString('es-CO')
+          })
+        }).catch(function(){});
+      }catch(e){}
+    }
+  }
+
+  // Aviso de visita (solo si ya cambiaste el tema por defecto no hace falta; funciona igual)
+  avisar('visita', '👀 ' + quien + ' abrió el enlace', 'Entró a la página.', esSofi ? 4 : 2, ['eyes']);
+
+  // Contador de días
+  var start = new Date(2026, 7, 2), now = new Date();
+  var d = Math.floor((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - start) / 86400000);
+  document.getElementById('days').textContent = d > 0 ? d : 0;
+
+  var letter = document.getElementById('letter'), open = document.getElementById('open'), reply = document.getElementById('reply');
+  open.addEventListener('click', function(){
+    letter.classList.add('show'); open.style.display = 'none';
+    letter.scrollIntoView({behavior:'smooth', block:'start'});
+    avisar('carta', '📬 ' + quien + ' abrió la carta', 'Tocó el sobre y está leyendo.', esSofi ? 4 : 2, ['love_letter'], true);
+  });
+
+  function hearts(){
+    for (var i = 0; i < 18; i++){
+      (function(i){ setTimeout(function(){
+        var h = document.createElement('div'); h.className = 'heart';
+        h.textContent = ['💗','💖','💕','🎀'][i % 4];
+        h.style.left = (Math.random() * 92) + 'vw';
+        document.body.appendChild(h); setTimeout(function(){ h.remove(); }, 3300);
+      }, i * 120); })(i);
+    }
+  }
+  document.getElementById('yes').addEventListener('click', function(){
+    reply.textContent = 'Gracias, mi amor. Te prometo no olvidarlo. 🥹💗'; hearts();
+    avisar('si', esSofi ? '💗 Sofi dijo que SÍ te perdona' : '💗 ' + quien + ' tocó “Sí, te perdono”',
+           esSofi ? 'Respondió: Sí, te perdono.' : 'Ojo: no es Sofi, es ' + quien + '.',
+           esSofi ? 5 : 2, ['heart'], true);
+  });
+  document.getElementById('wait').addEventListener('click', function(){
+    reply.textContent = 'Tómate todo el tiempo que necesites. Aquí voy a estar. 🤍';
+    avisar('ratito', esSofi ? '🤍 Sofi necesita un ratito' : '🤍 ' + quien + ' tocó “Necesito un ratito”',
+           esSofi ? 'Respondió: Necesito un ratito.' : 'Ojo: no es Sofi, es ' + quien + '.',
+           esSofi ? 5 : 2, ['white_heart'], true);
+  });
+})();
+</script>
+</body>
+</html>
