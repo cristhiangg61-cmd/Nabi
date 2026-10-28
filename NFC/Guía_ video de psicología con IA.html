@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guía: video de psicología con IA</title>
+<style>
+:root{--bg:#faf8f4;--fg:#1d1b18;--mut:#6b655c;--card:#fff;--line:#e4ded3;--acc:#b4451f;--ok:#2f7d4f;--code:#16130f;--codefg:#f1ebe0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15130f;--fg:#efe9de;--mut:#a39b8d;--card:#1e1b16;--line:#332e26;--acc:#f08a5d;--ok:#6fcf97;--code:#0c0a07;--codefg:#f1ebe0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15130f;--fg:#efe9de;--mut:#a39b8d;--card:#1e1b16;--line:#332e26;--acc:#f08a5d;--ok:#6fcf97;--code:#0c0a07;--codefg:#f1ebe0;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:820px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.6rem;line-height:1.2;margin:.2em 0}
+h2{font-size:1.15rem;margin:0}
+p{margin:.5em 0}
+.mut{color:var(--mut);font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0}
+.warn{border-left:4px solid var(--acc)}
+.warn li{margin:.35em 0}
+details.step{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:12px 0}
+details.step>summary{cursor:pointer;list-style:none;padding:14px 16px;display:flex;gap:10px;align-items:center}
+details.step>summary::-webkit-details-marker{display:none}
+.num{background:var(--acc);color:#fff;border-radius:50%;min-width:28px;height:28px;display:grid;place-items:center;font-weight:700;font-size:.9rem}
+.tag{font-size:.72rem;border:1px solid var(--line);border-radius:99px;padding:1px 8px;color:var(--mut);margin-left:auto;white-space:nowrap}
+.tag.opt{color:var(--acc);border-color:var(--acc)}
+.body{padding:0 16px 14px}
+details.step.done .num{background:var(--ok)}
+.chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.92rem}
+a.btn{display:inline-block;background:var(--acc);color:#fff;text-decoration:none;padding:7px 12px;border-radius:8px;margin:4px 6px 4px 0;font-size:.92rem}
+.code{position:relative;background:var(--code);color:var(--codefg);border-radius:8px;margin:8px 0;padding:10px 12px;padding-right:84px;overflow-x:auto}
+.code code{font:13px/1.5 ui-monospace,Consolas,Menlo,monospace;white-space:pre}
+.cp{position:absolute;top:6px;right:6px;border:0;background:#ffffff22;color:var(--codefg);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:.8rem}
+.lbl{font-size:.8rem;color:var(--mut);margin-top:8px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+label{display:block;margin:8px 0}
+input[type=number],select{font:inherit;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+#out{font-weight:600}
+#bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:8px}
+#bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+</style>
+</head>
+<body>
+<main>
+<h1>🎬 Video de 5 min: psicología del comportamiento</h1>
+<p class="mut">Guía paso a paso. Casi todo es copiar, pegar y hacer clic. Marca cada paso al terminarlo.</p>
+<div id="bar"><i></i></div>
+
+<div class="card warn">
+<h2>Antes de empezar: lo que encontré al investigar</h2>
+<ul>
+<li><b>Es “Arcads”</b> (con c). Tiene conector oficial para Claude, pero exige suscripción con créditos (reseñas lo ubican desde unos US$100 al mes; confírmalo en su página).</li>
+<li><b>Katana no es de Gemini.</b> Es una skill de <b>Higgsfield</b> que corre dentro de Claude, con modelos y créditos de Higgsfield (suscripción aparte). Sirve para recrear una edición de referencia con tus fotos.</li>
+<li><b>Gemini no se conecta a Claude.</b> El puente es manual: Claude escribe los prompts y tu prima los pega en Gemini/Flow. Lo que sí se conecta por conector: Claude ↔ Arcads y Claude ↔ Higgsfield/Katana.</li>
+<li><b>Ruta 80/20:</b> Claude + Gemini/Flow + ffmpeg cuesta US$0 extra. Arcads y Katana son opcionales (pasos 2 y 3).</li>
+</ul>
+</div>
+
+<div class="card tbl"><h2>Quién hace qué</h2>
+<table><tr><th>Herramienta</th><th>Rol</th><th>Conexión</th></tr>
+<tr><td>Claude</td><td>Guion, lista de planos, prompts, director</td><td>—</td></tr>
+<tr><td>Gemini / Flow (Veo)</td><td>Genera los clips de 8 s (los “ejecutores” de prompts)</td><td>Copiar y pegar</td></tr>
+<tr><td>Arcads <span class="mut">(opcional)</span></td><td>Actor IA hablando a cámara (talking head, confesional)</td><td>Conector en Claude</td></tr>
+<tr><td>Katana / Higgsfield <span class="mut">(opcional)</span></td><td>Recrear una edición de referencia con tus personajes</td><td>Conector en Claude</td></tr>
+<tr><td>ffmpeg + PowerShell</td><td>Unir los clips en un solo video</td><td>Comandos</td></tr></table></div>
+
+<details class="step" open data-k="1"><summary><span class="num">1</span><h2>Preparar Claude</h2><span class="tag">Todos</span></summary><div class="body">
+<p>Instala la app de escritorio (los conectores se agregan desde ahí o desde claude.ai).</p>
+<a class="btn" href="https://claude.com/download" target="_blank" rel="noopener">Descargar Claude Desktop</a>
+<a class="btn" href="https://claude.ai" target="_blank" rel="noopener">Abrir claude.ai</a>
+<p class="mut">Los conectores están en <b>Ajustes → Conectores</b>. Si no te deja agregar uno personalizado, puede depender del plan de tu cuenta.</p>
+<label class="chk"><input type="checkbox"> Hecho</label></div></details>
+
+<details class="step" data-k="2"><summary><span class="num">2</span><h2>Conectar Arcads</h2><span class="tag opt">Opcional · de pago</span></summary><div class="body">
+<p>1) Crea cuenta y elige plan (sin créditos, las generaciones fallan):</p>
+<a class="btn" href="https://app.arcads.ai" target="_blank" rel="noopener">Entrar a Arcads</a>
+<a class="btn" href="https://app.arcads.ai/dashboard/settings/billing" target="_blank" rel="noopener">Plan y créditos</a>
+<p>2) En Claude: <b>Ajustes → Conectores → + → Agregar conector personalizado</b> y pega:</p>
+<div class="lbl">Nombre</div><pre class="code"><code>Arcads</code></pre>
+<div class="lbl">URL</div><pre class="code"><code>https://mcp.arcads.ai</code></pre>
+<p>3) Guarda, pulsa <b>Connect</b> e inicia sesión en Arcads.</p>
+<a class="btn" href="https://intercom.help/arcads/en/articles/15655699-arcads-mcp" target="_blank" rel="noopener">Guía oficial</a>
+<label class="chk"><input type="checkbox"> Hecho (o lo salto)</label></div></details>
+
+<details class="step" data-k="3"><summary><span class="num">3</span><h2>Conectar Higgsfield (Katana)</h2><span class="tag opt">Opcional · de pago</span></summary><div class="body">
+<p>1) Suscripción de Higgsfield (Katana gasta sus créditos; Claude muestra el costo antes de cada generación):</p>
+<a class="btn" href="https://higgsfield.ai/pricing" target="_blank" rel="noopener">Ver planes</a>
+<a class="btn" href="https://higgsfield.ai/katana" target="_blank" rel="noopener">Página de Katana</a>
+<p>2) En Claude: <b>Ajustes → Conectores → Agregar conector personalizado</b>:</p>
+<div class="lbl">Nombre</div><pre class="code"><code>Higgsfield</code></pre>
+<div class="lbl">URL</div><pre class="code"><code>https://mcp.higgsfield.ai/mcp</code></pre>
+<p>3) Pulsa <b>Connect</b> y autoriza con tu cuenta. Prueba en un chat nuevo de Claude escribiendo:</p>
+<pre class="code"><code>/katana</code></pre>
+<p class="mut">Katana necesita un video de referencia que sea tuyo o que tengas permiso de usar, más hasta 5 fotos. No acepta links de perfiles de Instagram o TikTok.</p>
+<label class="chk"><input type="checkbox"> Hecho (o lo salto)</label></div></details>
+
+<details class="step" data-k="4"><summary><span class="num">4</span><h2>Gemini y Flow (cuenta de tu prima)</h2><span class="tag">Todos</span></summary><div class="body">
+<a class="btn" href="https://gemini.google.com" target="_blank" rel="noopener">Abrir Gemini</a>
+<a class="btn" href="https://labs.google/fx/tools/flow" target="_blank" rel="noopener">Abrir Flow</a>
+<a class="btn" href="https://support.google.com/flow/answer/16526234" target="_blank" rel="noopener">Créditos de Flow</a>
+<p>Trucos 80/20 con el plan más bajo (Google AI Plus según lo publicado a octubre de 2026):</p>
+<ul>
+<li>Genera en <b>Flow</b>, no en el chat de Gemini: ahí los créditos están contados.</li>
+<li>Gasta primero los <b>50 créditos diarios</b>: no se acumulan.</li>
+<li>Usa <b>Veo 3.1 Lite</b> para borradores y <b>Fast</b> solo para los planos importantes.</li>
+<li>Cada clip dura hasta 8 s; tu máximo de 10 s no se alcanza. Planea planos de 8 s.</li>
+</ul>
+<p class="mut">Los números pueden cambiar sin aviso y los costos publicados son del plan Pro; confirma el costo real en Flow antes de generar.</p>
+<label class="chk"><input type="checkbox"> Hecho</label></div></details>
+
+<details class="step" data-k="5"><summary><span class="num">5</span><h2>Carpeta y ffmpeg (PowerShell)</h2><span class="tag">Todos</span></summary><div class="body">
+<p>Abre <b>PowerShell</b> (menú Inicio → escribe “PowerShell” → Enter), pega esto y presiona Enter. Crea la carpeta, instala ffmpeg y la abre:</p>
+<pre class="code" data-ps><code>New-Item -ItemType Directory -Force "$HOME\Videos\psicologia\clips" | Out-Null
+winget install --id Gyan.FFmpeg -e --accept-source-agreements --accept-package-agreements
+explorer "$HOME\Videos\psicologia\clips"</code></pre>
+<p><b>Cierra PowerShell y ábrelo de nuevo</b> para que reconozca ffmpeg. Verifícalo:</p>
+<pre class="code"><code>ffmpeg -version</code></pre>
+<label class="chk"><input type="checkbox"> Hecho</label></div></details>
+
+<details class="step" data-k="6"><summary><span class="num">6</span><h2>Flujo de trabajo (el bucle)</h2><span class="tag">Todos</span></summary><div class="body">
+<ol>
+<li>En Claude: pide el guion y una <b>lista de planos de 8 s</b> (un video de 5 min son unos 38 planos).</li>
+<li>Pega cada prompt en Flow y genera. Descarga el clip.</li>
+<li>Guarda los clips en <code>Videos\psicologia\clips</code> con nombres ordenados: <code>01.mp4</code>, <code>02.mp4</code>, <code>03.mp4</code>…</li>
+<li>Cuando tengas varios, pega el script de abajo en PowerShell.</li>
+<li>Pule el resultado (música, subtítulos) en un editor gratis como CapCut o DaVinci Resolve.</li>
+</ol>
+<div class="lbl">Script para unir todos los clips en video_final.mp4</div>
+<pre class="code" data-ps><code>$dir = "$HOME\Videos\psicologia"
+$lista = "$dir\lista.txt"
+Get-ChildItem "$dir\clips" -Filter *.mp4 | Sort-Object Name | ForEach-Object { "file '" + $_.FullName.Replace('\','/') + "'" } | Set-Content $lista -Encoding ascii
+ffmpeg -y -f concat -safe 0 -i $lista -c:v libx264 -crf 18 -preset fast -c:a aac "$dir\video_final.mp4"
+explorer $dir</code></pre>
+<p class="mut">Vuelve a pegarlo cada vez que agregues clips: reescribe video_final.mp4.</p>
+<label class="chk"><input type="checkbox"> Hecho</label></div></details>
+
+<div class="card"><h2>Calculadora de créditos de Flow</h2>
+<p class="mut">Estimación con 50 créditos diarios + 200 del mes (plan Google AI Plus).</p>
+<label>Duración (min) <input id="min" type="number" value="5" min="1" max="30"></label>
+<label>Generaciones por plano (intentos): <b id="retv">2</b> <input id="ret" type="range" min="1" max="4" value="2"></label>
+<label>Modelo <select id="mod"><option value="10">Veo 3.1 Lite (10 créditos)</option><option value="20">Veo 3.1 Fast (20)</option><option value="100">Veo 3.1 Quality (100)</option></select></label>
+<p id="out"></p></div>
+
+<p class="mut">Siguiente paso: los prompts 80/20 (guion, planos y prompts para Veo).</p>
+</main>
+<script>
+(function(){
+var KEY='vp-steps';
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}}}
+function save(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+var st=load();
+function paint(){
+  var steps=document.querySelectorAll('details.step'),n=0;
+  steps.forEach(function(d){var c=d.querySelector('.chk input');if(c.checked){n++;d.classList.add('done')}else{d.classList.remove('done')}});
+  document.querySelector('#bar i').style.width=(100*n/steps.length)+'%';
+}
+document.querySelectorAll('details.step').forEach(function(d){
+  var c=d.querySelector('.chk input'),k=d.getAttribute('data-k');
+  c.checked=!!st[k];
+  c.addEventListener('change',function(){st[k]=c.checked;save(st);paint()});
+});
+paint();
+function fb(t,ok){var a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');ok()}catch(e){}a.remove()}
+function copy(t,b){
+  var ok=function(){b.textContent='¡Copiado!';setTimeout(function(){b.textContent='Copiar'},1500)};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,function(){fb(t,ok)})}else{fb(t,ok)}
+}
+document.querySelectorAll('pre.code').forEach(function(p){
+  var b=document.createElement('button');b.className='cp';b.textContent='Copiar';
+  b.addEventListener('click',function(){copy(p.querySelector('code').textContent,b)});
+  p.appendChild(b);
+});
+function calc(){
+  var m=Math.max(1,parseFloat(document.getElementById('min').value)||5);
+  var r=parseInt(document.getElementById('ret').value,10);
+  var c=parseInt(document.getElementById('mod').value,10);
+  document.getElementById('retv').textContent=r;
+  var base=Math.ceil(m*60/8),gens=base*r,cred=gens*c;
+  var dias=cred<=200?1:Math.ceil((cred-200)/50);
+  document.getElementById('out').textContent=base+' planos de 8 s · '+gens+' generaciones · '+cred+' créditos · aprox. '+dias+' día(s) usando los créditos diarios';
+}
+['min','ret','mod'].forEach(function(id){document.getElementById(id).addEventListener('input',calc)});
+calc();
+})();
+</script>
+</body>
+</html>
