@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Control de nivel · Esquema, verificación y simulación</title>
+<style>
+:root{--bg:#eef2ee;--fg:#1d2b22;--pn:#fff;--ac:#1f6b3a;--bd:#c9d6cc;--ok:#1f8a3a;--wn:#b7791f;--ko:#d32f2f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111815;--fg:#e4ede7;--pn:#16201b;--ac:#5fc383;--bd:#2c3b33;--ok:#5fc383;--wn:#e0b04a;--ko:#ff6b6b}}
+:root[data-theme="dark"]{--bg:#111815;--fg:#e4ede7;--pn:#16201b;--ac:#5fc383;--bd:#2c3b33;--ok:#5fc383;--wn:#e0b04a;--ko:#ff6b6b}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:12px}
+h1{font-size:19px;color:var(--ac);margin:4px 0}h2{font-size:15px;color:var(--ac);margin:0 0 8px}
+section{background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:12px;margin:12px 0}
+.sc{overflow-x:auto}svg{min-width:640px;width:100%;height:auto;display:block}
+svg text{fill:var(--fg);font:10px system-ui}svg rect.b{fill:var(--bg);stroke:var(--fg);stroke-width:1.2}
+table{border-collapse:collapse;width:100%}td{border-top:1px solid var(--bd);padding:5px 4px;vertical-align:top}
+.ok{color:var(--ok)}.wn{color:var(--wn)}.ko{color:var(--ko)}td:first-child{font-weight:700;width:22px}
+label{display:inline-block;margin:2px 12px 2px 0}input[type=range]{vertical-align:middle;width:130px}
+canvas{width:100%;height:210px;display:block}.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.g{grid-template-columns:1fr}}
+.m{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.m div{border:1px solid var(--bd);border-radius:6px;padding:3px 8px}
+small{opacity:.8}
+</style></head><body><main>
+<h1>Control de nivel · Esquema, verificación y simulación</h1>
+<small>Parámetros de ejemplo de la guía (K=0,5 cm/%; τ=40 s; θ=2 s). Sustitúyanlos por los medidos en su maqueta.</small>
+
+<section><h2>1. Esquema eléctrico (netlist de la guía)</h2><div class="sc"><svg id="sv" viewBox="0 0 760 430"></svg></div>
+<small>Rojo +12 V · Naranja +5 V · Azul bomba − / drenaje · Morado PWM · Verde Trig · Amarillo Echo · Gris GND.</small></section>
+
+<section><h2>2. ¿Las conexiones funcionan? Verificación calculada</h2>
+<label>I bomba máx. <input type="range" id="ip" min=.5 max=3 step=.1 value=2> <b id="ipv"></b></label>
+<label>Duty <input type="range" id="du" min=5 max=95 step=5 value=30> <b id="duv"></b></label>
+<label>T ambiente <input type="range" id="tt" min=15 max=40 step=1 value=30> <b id="ttv"></b></label>
+<table id="vt"></table></section>
+
+<section><h2>3. Simulación no lineal (Torricelli + zona muerta + retardo + ruido del sensor)</h2>
+<label>λ <input type="range" id="lam" min=4 max=30 step=1 value=10> <b id="lamv"></b></label>
+<label>Ruido σ <input type="range" id="sg" min=0 max=.4 step=.05 value=.15> <b id="sgv"></b></label>
+<label>Referencia final <input type="range" id="rf" min=8 max=20 step=1 value=11> <b id="rfv"></b></label>
+<div class="m" id="mt"></div>
+<canvas id="p1"></canvas><canvas id="p2" style="height:130px"></canvas>
+<small>Nivel: referencia (discontinua), real (verde), medido con ruido (gris). Línea roja: válvula abierta en t=130 s. Abajo: duty u [%].</small></section>
+
+<section><h2>4. Polos (PI + planta de 1.er orden, sin retardo)</h2>
+<div class="g"><canvas id="ps"></canvas><canvas id="pzc"></canvas></div>
+<div id="pi"></div><small>Izquierda: plano s. Derecha: plano z (z = e^{s·Ts}, Ts=0,5 s) con el círculo unitario. ✕ lazo abierto · ● lazo cerrado.</small></section>
+</main>
+<script>
+const $=id=>document.getElementById(id),f=(x,n=1)=>x.toFixed(n).replace('.',',');
+// ---------- esquema
+const L=[],B=[],R='#e53935',O='#ff8a00',U='#2a6fdb',P='#a24bd6',V='#2fb344',Y='#f2c200',Gd='#888';
+const ln=(c,p)=>L.push(`<polyline points="${p}" fill="none" stroke="${c}" stroke-width="2.2"/>`);
+const bx=(x,y,w,h,t,y2)=>B.push(`<rect class="b" x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/><text x="${x+w/2}" y="${y+h/2+3}" text-anchor="middle">${t}</text>`);
+const tx=(x,y,t,a='start')=>B.push(`<text x="${x}" y="${y}" text-anchor="${a}">${t}</text>`);
+ln(R,'100,215 100,40 720,40');ln(Gd,'50,260 50,400 730,400');
+ln(R,'250,40 250,120');ln(Gd,'250,156 250,400');
+ln(R,'300,40 300,178');ln(U,'300,222 300,270');ln(Gd,'300,330 300,400');
+ln(R,'345,40 345,130');ln(U,'345,180 345,250 300,250');
+ln(R,'420,40 420,150');ln(Gd,'420,210 420,400');
+ln(O,'480,165 510,165 510,150 540,150');ln(O,'510,150 510,100 715,100 715,130');
+ln(Gd,'560,300 560,400');ln(Gd,'715,260 715,400');
+ln(V,'630,180 680,180');
+ln(Y,'680,230 650,230 650,300');ln(Y,'650,336 650,345 610,345 610,300');ln(Y,'630,345 630,360');ln(Gd,'630,390 630,400');
+ln(P,'540,262 490,262');ln(P,'440,262 360,262 360,290 335,290');ln(P,'360,290 360,330');ln(Gd,'360,370 360,400');
+bx(10,200,80,60,'Fuente 12 V ≥3 A');bx(120,28,50,24,'Fusible 3 A');bx(185,28,50,24,'Interr.');
+bx(235,120,30,36,'470µ');B.push(`<circle cx="300" cy="200" r="22" class="b" fill="none" stroke="currentColor"/><text x="300" y="204" text-anchor="middle">Bomba</text>`);
+bx(325,130,40,50,'1N5819');bx(400,150,80,60,'LM2596 12→5 V');bx(265,270,70,60,'IRLZ44N');
+bx(540,130,90,170,'ESP32');bx(680,130,70,130,'HC-SR04');bx(440,252,50,20,'220 Ω');bx(350,330,20,40,'10k');bx(640,300,20,36,'1k');bx(620,360,20,30,'2k');
+tx(544,184,'GPIO5');tx(544,266,'GPIO25');tx(594,292,'GPIO18');tx(544,154,'VIN');tx(684,184,'Trig');tx(684,234,'Echo');tx(700,146,'VCC');
+tx(725,34,'+12 V','end');tx(725,414,'GND común','end');tx(575,342,'3,33 V');tx(268,296,'D');tx(340,306,'G');tx(268,326,'S');tx(308,246,'Drenaje');tx(500,95,'+5 V');
+$('sv').innerHTML=L.join('')+B.join('')+'<circle cx="630" cy="345" r="3" fill="#f2c200"/>';
+// ---------- verificación
+function ver(){
+ const Ip=+$('ip').value,D=+$('du').value/100,T=+$('tt').value;
+ $('ipv').textContent=f(Ip)+' A';$('duv').textContent=(D*100)+' %';$('ttv').textContent=T+' °C';
+ const Id=Ip*(1-D),It=Ip+.13,c=331.3+.606*T,eT=(c/343-1)*100,r15=30*Math.tan(15*Math.PI/180),r75=30*Math.tan(7.5*Math.PI/180);
+ const bits=Math.floor(Math.log2(80e6/20e3));
+ const rows=[
+ [0,'Divisor del eco',`5 V·2k/(1k+2k) = ${f(5*2/3,2)} V ≤ 3,6 V (máx. GPIO) y > 2,5 V (nivel alto). Correcto.`],
+ [Id>1?2:0,'Diodo flyback 1N5819',`Corriente media del diodo ≈ I·(1−D) = ${f(Id,2)} A; el 1N5819 admite 1 A.${Id>1?' Cámbienlo por SS34 / 1N5822 (3 A).':' Aceptable a este duty.'} Cátodo a +12 V, ánodo al drenaje: polaridad correcta.`],
+ [1,'MOSFET con 3,3 V',`Vgs=3,3 V: el IRLZ44N garantiza Rds(on) a 4–5 V; a 3,3 V ≈0,05 Ω típico → P = ${f(Ip*Ip*.05,2)} W, sin disipador. Funciona, pero sin margen; con bombas ≥2 A usen módulo driver o un MOSFET con Rds garantizado a 2,5 V. I compuerta pico = ${f(3300/220,0)} mA.`],
+ [It>2?1:0,'Fusible y fuente',`Consumo ≈ ${f(It,2)} A (bomba + regulador ≈0,13 A). ${It>2?'Un fusible de 2 A saltaría: usen 3 A.':'Fusible de 2 A basta.'} Fuente ≥3 A: correcto.`],
+ [0,'PWM LEDC 20 kHz / 10 bits',`80 MHz / 20 kHz = 4000 pasos → hasta ${bits} bits disponibles ≥ 10. Inaudible y menor rizado en el condensador.`],
+ [0,'Distancia mínima del sensor',`Con tanque lleno d = 30 − 25 = 5 cm > zona ciega 2 cm. Correcto.`],
+ [1,'Cono del ultrasonido',`Radio del haz con tanque vacío (d=30 cm): ${f(r75,1)} cm si 7,5° de semiángulo (15° total, cabe en radio 6 cm); ${f(r15,1)} cm si 15° de semiángulo → toca la pared. Centren el sensor y midan en pruebas; la maqueta 3D dibujaba 15° de semiángulo (30° total).`],
+ [Math.abs(eT)>1?1:0,'Velocidad del sonido',`A ${T} °C, c = ${f(c,1)} m/s frente a 343 (d=t/58): error ${f(eT,1)} % → ${f(Math.abs(eT)*.3,2)} cm a d=30 cm. Compensen: d = t·c/2 con c = 331,3+0,606·T.`],
+ [1,'GPIO5 = pin de arranque',`GPIO5 es «strapping» y emite una señal al reiniciar. Trig es alta impedancia y no molesta, pero GPIO17 es más limpio.`],
+ [0,'Compuerta en reposo',`El pull-down de 10 kΩ mantiene la bomba apagada mientras el ESP32 arranca. Tierra común unida: correcto.`],
+ [0,'Muestreo',`Ts=0,5 s ≥ 60 ms del HC-SR04 y ≤ τ/10 = 4 s. Correcto.`]];
+ const s=['✓','!','✗'],k=['ok','wn','ko'];
+ $('vt').innerHTML=rows.map(r=>`<tr><td class="${k[r[0]]}">${s[r[0]]}</td><td><b>${r[1]}</b><br>${r[2]}</td></tr>`).join('');
+}
+// ---------- simulación
+function rnd(s){return()=>(s=(s*16807)%2147483647)/2147483647}
+let S;
+function sim(){
+ const lam=+$('lam').value,sg=+$('sg').value,rf=+$('rf').value;
+ $('lamv').textContent=lam+' s';$('sgv').textContent=f(sg,2)+' cm';$('rfv').textContent=rf+' cm';
+ const K=.5,tau=40,Ts=.5,Kp=tau/(K*(lam+2)),Ti=tau,A=113.1,Kb=1.414,kv=13.86,kv2=2.56,rn=rnd(7);
+ let h=6,I=30,u=30,rr=6,ym=6,buf=Array(20).fill(30),raw=[6,6,6];
+ const H=[],M=[],Uu=[],Rr=[];
+ for(let k=0;k<440;k++){
+  const t=k*Ts;
+  const m=Math.round((h+(rn()+rn()+rn()-1.5)*2*sg)/.17)*.17;raw.push(m);raw.shift();
+  const md=[...raw].sort((a,b)=>a-b)[1];ym+=.4*(md-ym);
+  rr+=Math.max(-.25,Math.min(.25,(t>=10?rf:6)-rr));
+  const e=rr-ym,uu=Kp*e+I,c=Math.max(0,Math.min(100,uu));if(uu===c)I+=Kp/Ti*Ts*e;u=c;
+  H.push(h);M.push(ym);Uu.push(u);Rr.push(rr);
+  for(let j=0;j<5;j++){const ue=buf.shift();buf.push(u);
+   h+=(Kb*Math.max(0,ue-6)-(kv+(t>=130?kv2:0))*Math.sqrt(Math.max(h,0)))/A*.1;h=Math.max(h,0)}}
+ const d=rf-6,i0=20,i1=260;let mx=0,ts=0;
+ for(let i=i0;i<i1;i++){mx=Math.max(mx,H[i]);if(Math.abs(H[i]-rf)>.02*d)ts=i*Ts-10}
+ const ess=H.slice(220,260).reduce((a,b)=>a+b)/40-rf,os=Math.max(0,(mx-rf)/d*100);
+ let mn=99,rec=0;for(let i=260;i<440;i++){mn=Math.min(mn,H[i]);if(Math.abs(H[i]-rf)>.3)rec=i*Ts-130}
+ const ch=(v,l)=>`<span class="${v?'ok':'ko'}">${v?'✓':'✗'}</span>`;
+ $('mt').innerHTML=`<div>Kp=${f(Kp,1)} %/cm · Ti=${Ti} s</div><div>Sobreimpulso ${f(os,1)} % ${ch(os<=10)}</div><div>ts(2 %) ${f(ts,0)} s ${ch(ts<=60)}</div><div>e_ss ${f(ess,2)} cm ${ch(Math.abs(ess)<=.3)}</div><div>Caída por válvula ${f(rf-mn,2)} cm</div><div>Recuperación ${f(rec,0)} s ${ch(rec<=40)}</div>`;
+ S={H,M,Uu,Rr,Kp,Ti,K,tau,Ts};
+}
+function pl(cv,ser,y0,y1){
+ const d=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*d;cv.height=h*d;
+ const g=cv.getContext('2d');g.scale(d,d);const cs=getComputedStyle(document.documentElement),fg=cs.getPropertyValue('--fg'),bd=cs.getPropertyValue('--bd');
+ const X=t=>34+t/220*(w-44),Y=v=>h-18-(v-y0)/(y1-y0)*(h-28);
+ g.font='10px system-ui';g.fillStyle=fg;
+ for(let i=0;i<=4;i++){const v=y0+(y1-y0)*i/4,y=Y(v);g.strokeStyle=bd;g.beginPath();g.moveTo(34,y);g.lineTo(w-10,y);g.stroke();g.fillText(v.toFixed(0),6,y+3)}
+ for(let t=0;t<=220;t+=40)g.fillText(t+' s',X(t)-8,h-4);
+ g.strokeStyle='#d32f2f';g.setLineDash([3,3]);g.beginPath();g.moveTo(X(130),4);g.lineTo(X(130),h-18);g.stroke();
+ ser.forEach(([a,c,ds,lw])=>{g.setLineDash(ds||[]);g.strokeStyle=c;g.lineWidth=lw||1.8;g.beginPath();a.forEach((v,i)=>i?g.lineTo(X(i*.5),Y(v)):g.moveTo(X(0),Y(v)));g.stroke()});
+}
+function pz(cv,pts,xa,xb,ya,yb,circ){
+ const d=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*d;cv.height=h*d;
+ const g=cv.getContext('2d');g.scale(d,d);const cs=getComputedStyle(document.documentElement),fg=cs.getPropertyValue('--fg'),bd=cs.getPropertyValue('--bd');
+ const X=x=>(x-xa)/(xb-xa)*w,Y=y=>h-(y-ya)/(yb-ya)*h;
+ g.strokeStyle=bd;g.beginPath();g.moveTo(X(xa),Y(0));g.lineTo(X(xb),Y(0));g.moveTo(X(0),Y(ya));g.lineTo(X(0),Y(yb));g.stroke();
+ if(circ){g.strokeStyle=fg;g.beginPath();g.ellipse(X(0),Y(0),X(1)-X(0),Y(0)-Y(1),0,0,7);g.stroke()}
+ g.font='13px system-ui';g.fillStyle=fg;
+ pts.forEach(([x,y,t,c])=>{g.fillStyle=c;g.fillText(t,X(x)-5,Y(y)+5)});
+}
+function poles(){
+ const{Kp,Ti,K,tau,Ts}=S,a=tau,b=1+K*Kp,c=K*Kp/Ti,D=b*b-4*a*c;
+ const r=D>=0?[[(-b+Math.sqrt(D))/2/a,0],[(-b-Math.sqrt(D))/2/a,0]]:[[-b/2/a,Math.sqrt(-D)/2/a],[-b/2/a,-Math.sqrt(-D)/2/a]];
+ const z=([x,y])=>[Math.exp(x*Ts)*Math.cos(y*Ts),Math.exp(x*Ts)*Math.sin(y*Ts)];
+ const ol=[-1/tau,0],G='#2a6fdb',Rd='#d32f2f';
+ pz($('ps'),[[...ol,'✕',G],...r.map(p=>[...p,'●',Rd])],-.3,.05,-.15,.15,false);
+ pz($('pzc'),[[...z(ol),'✕',G],...r.map(p=>[...z(p),'●',Rd])],-1.2,1.2,-1.2,1.2,true);
+ const zr=r.map(z).map(p=>f(Math.hypot(...p),3));
+ const zeta=D<0?f(b/(2*Math.sqrt(a*c)),2):'≥ 1 (sobreamortiguado)';
+ $('pi').innerHTML=`Lazo abierto: s = ${f(ol[0],3)} (z = ${f(z(ol)[0],4)}). Lazo cerrado: s = ${r.map(p=>f(p[0],3)+(p[1]?(p[1]>0?'+':'−')+'j'+f(Math.abs(p[1]),3):'')).join(' ; ')} · |z| = ${zr.join(' ; ')} (&lt; 1, estable) · ζ = ${zeta}. El retardo de 2 s no está en este mapa: reduce el margen de fase, por eso λ ≳ θ.`;
+}
+function draw(){sim();pl($('p1'),[[S.Rr,'#888',[5,4],1.4],[S.M,'#aab4ad',[],1],[S.H,'#1f8a3a',[],2]],4,Math.max(12,+$('rf').value+2));pl($('p2'),[[S.Uu,'#e0752a']],0,100);poles()}
+['ip','du','tt'].forEach(i=>$(i).oninput=ver);['lam','sg','rf'].forEach(i=>$(i).oninput=draw);
+matchMedia('(prefers-color-scheme: dark)').onchange=draw;addEventListener('resize',draw);
+ver();draw();
+</script></body></html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lista de compra · Control de nivel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{--bg:#edf2f5;--pn:#fff;--fg:#14232e;--mu:#5a6b76;--bd:#cbd8df;--ac:#1b6fa8;--ok:#1d7a4f;--wn:#9a6208;--ko:#b8322f;--wa:#2a8fd0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a22;--pn:#15252f;--fg:#e3edf2;--mu:#93a7b3;--bd:#2a3f4c;--ac:#5db4ea;--ok:#5fcf9a;--wn:#e5b252;--ko:#ff8581;--wa:#3d9fd8}}
+:root[data-theme="dark"]{--bg:#0e1a22;--pn:#15252f;--fg:#e3edf2;--mu:#93a7b3;--bd:#2a3f4c;--ac:#5db4ea;--ok:#5fcf9a;--wn:#e5b252;--ko:#ff8581;--wa:#3d9fd8}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 "Atkinson Hyperlegible",system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:14px}
+header{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+header svg{flex:none;width:64px;height:100px}
+h1{font-size:24px;line-height:1.15;margin:0 0 4px}
+h2{font-size:18px;margin:26px 0 8px}
+h3{font-size:15px;margin:14px 0 4px;color:var(--mu)}
+.sub{color:var(--mu);margin:0 0 6px;font-size:14px}
+.stats{font-weight:700}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.bar button,.bar a{font:inherit;font-size:14px;border:1px solid var(--bd);background:var(--pn);color:var(--fg);border-radius:999px;padding:6px 14px;cursor:pointer}
+.bar button[aria-pressed="true"]{background:var(--ac);border-color:var(--ac);color:#fff}
+.bar button:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.it{background:var(--pn);border:1px solid var(--bd);border-radius:8px;margin:8px 0;padding:10px 12px}
+.it.done{opacity:.6}
+.row{display:flex;gap:10px;align-items:flex-start}
+.row input[type=checkbox]{width:22px;height:22px;margin:2px 0 0;flex:none;accent-color:var(--ac)}
+.nm{font-weight:700}
+.qt{color:var(--mu);font-size:14px}
+.sp{margin:2px 0 0}
+.bd{margin-left:auto;flex:none;font-size:13px;font-weight:700;border:1.5px solid currentColor;border-radius:6px;padding:1px 8px;white-space:nowrap}
+.bd.ok{color:var(--ok)}.bd.wn{color:var(--wn)}.bd.ko{color:var(--ko)}
+details{margin:6px 0 0 32px}
+summary{cursor:pointer;color:var(--ac);font-size:14px}
+details p{margin:4px 0;font-size:14px}
+.pr{display:flex;align-items:center;gap:6px;margin:8px 0 0 32px;font-size:14px;color:var(--mu)}
+.pr input{font:inherit;width:120px;padding:4px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--fg)}
+.tot{font-size:17px;font-weight:700;margin:10px 0}
+.f{display:flex;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--bd)}
+.f input{width:20px;height:20px;accent-color:var(--ac)}
+.f.done label{text-decoration:line-through;color:var(--mu)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--bd);vertical-align:top}
+th{color:var(--mu)}
+.nt{font-size:13px;color:var(--mu);margin-top:20px}
+</style></head><body><main>
+<header>
+<svg viewBox="0 0 64 100" aria-hidden="true"><defs><clipPath id="cp"><rect x="6" y="6" width="52" height="88" rx="4"/></clipPath></defs>
+<rect x="6" y="6" width="52" height="88" rx="4" fill="none" stroke="var(--fg)" stroke-width="3"/>
+<g clip-path="url(#cp)"><rect id="wt" x="0" y="94" width="64" height="0" fill="var(--wa)"/></g></svg>
+<div><h1>Lista de compra · Control de nivel</h1>
+<p class="sub">Bomba 12 V, HC-SR04 y ESP32. Marca lo que ya compraste: el tanque se llena con tu avance.</p>
+<div class="stats" id="st"></div></div>
+</header>
+
+<div class="bar" id="fl" role="group" aria-label="Filtrar lista">
+<button data-f="all" aria-pressed="true">Todo</button>
+<button data-f="todo" aria-pressed="false">Por comprar</button>
+<button data-f="ko" aria-pressed="false">✗ Corregir</button>
+<button data-f="wn" aria-pressed="false">⚠ Verificar</button>
+<button data-f="ok" aria-pressed="false">✓ Correcto</button>
+</div>
+
+<div id="main"></div>
+<div class="tot" id="tot"></div>
+
+<h2>Lo que falta en la lista</h2>
+<div id="fal"></div>
+
+<h2>Contradicciones entre archivos</h2>
+<div class="tw"><table>
+<thead><tr><th>Tema</th><th>PDF</th><th>HTML / 3D</th><th>Usar</th></tr></thead>
+<tbody>
+<tr><td>Diodo</td><td>1N5819</td><td>SS34</td><td>SS34</td></tr>
+<tr><td>Fusible</td><td>2–3 A</td><td>3 A</td><td>3 A retardado</td></tr>
+<tr><td>Pin Trig</td><td>GPIO5</td><td>3D: GPIO17</td><td>GPIO17 (corregir el esquema)</td></tr>
+<tr><td>Cono del sensor</td><td>~15°</td><td>3D: 15° totales</td><td>15° totales</td></tr>
+<tr><td>K y τ del ejemplo</td><td>h0 = 6 cm</td><td>Sim en 11–12 cm</td><td>Identificar en el h0 de la demo</td></tr>
+<tr><td>Válvula</td><td>√h</td><td>3D: salida a ~2 cm del fondo</td><td>√(h − h_v)</td></tr>
+<tr><td>Recuperación ≤40 s</td><td>Spec</td><td>La sim da 55 s</td><td>Redefinir (≤60 s)</td></tr>
+</tbody></table></div>
+<p class="nt">Valores de ejemplo de la guía: confirmen bomba, válvula y MOSFET con sus mediciones reales. Tu avance y los precios se guardan en este navegador.</p>
+</main>
+<script>
+const I=[
+["tanque","Tanque","1","Cilindro Ø12 cm interior × ≥25 cm, sección constante. Midan el Ø real con calibrador.","A = π·6² = 113,1 cm².","Prisma 12×12 (A = 144; rehagan los cálculos). Evitar PET cónico.","ok"],
+["reserva","Depósito de reserva","1","Cubeta ≥10 L con ≈7 L de agua.","La guía solo dice “mayor que el tanque”. Con ≈5,3 L la bomba queda al aire si el tanque pasa de 18,2 cm.","Cualquier cubeta más grande con marca de nivel mínimo.","ko"],
+["bomba","Bomba sumergible 12 V","1","Centrífuga, ≤2 A, ≥5 L/min a 0 m y ≥3 L/min a ~0,45 m; manguera Ø int. 8 mm.","Se necesitan ≥4,4 L/min a h = 20 cm con la válvula abierta.","De diafragma (no sifona, pero pulsa).","wn"],
+["mosfet","MOSFET","2","IRLZ44N (1 de repuesto).","A 3,3 V no garantiza Rds(on); sirve sin margen.","Módulo tipo D4184 que acepte 3,3 V. No usar módulos IRF520.","wn"],
+["diodo","Diodo flyback","2","Schottky SS34 (3 A / 40 V).","El 1N5819 de la guía (1 A) queda corto: 1,1–1,4 A en el peor caso.","SB360 o 1N5822.","ko"],
+["fusible","Fusible","1","Portafusible + T3,15 A retardado (o 3 A).","Consumo = 2 + 0,13 = 2,13 A; uno de 2 A salta.","—","ko"],
+["inter","Interruptor","1","Basculante ≥5 A en DC.","Interruptor general.","—","ok"],
+["cond","Condensadores","1+1","1000 µF / 25 V baja ESR + 100 nF cerámico.","Con 470 µF queda justo para el rizado de la bomba.","—","wn"],
+["res","Resistencias","2 c/u","220 Ω (o 100 Ω), 10 kΩ, 1 kΩ, 2 kΩ, ¼ W 1 %.","Compuerta, pull-down y divisor del eco (3,33 V).","—","ok"],
+["hcsr04","HC-SR04","2","5 V (1 de repuesto).","Zona ciega ≈2 cm. El JSN-SR04T no sirve (~20 cm).","—","ok"],
+["esp32","ESP32 DevKit","1","30 pines + cable USB de datos.","Fijen la versión del núcleo Arduino (2.x y 3.x difieren en timer/LEDC).","—","ok"],
+["lm2596","LM2596","1","Módulo ajustable 12→5 V.","Ajústenlo a 5,0 V con multímetro antes de conectar el ESP32.","—","wn"],
+["fuente","Fuente","1","12 V, ≥3 A (mejor 5 A).","Aguanta el arranque de la bomba.","—","ok"],
+["manguera","Manguera + abrazaderas","1,5 m + 6","Silicona del Ø de la bomba.","La del modelo 3D mide ≈80 cm.","—","ok"],
+["valvula","Válvula de salida","1","De aguja o bola pequeña, con topes marcados.","Es la perturbación; tiene que ser repetible.","T con 2.ª válvula todo/nada.","wn"],
+["antirret","Válvula antirretorno","1","Del Ø de la manguera.","Evita el sifón inverso con la bomba apagada.","Orificio anti-sifón de 1,5 mm en el punto más alto.","wn"]
+];
+const F=[
+["Conectores y cableado",["Borneras de tornillo ×4","Portafusible","Jack o bornera de entrada","Cable 18 AWG rojo/negro y 22 AWG de colores","Dupont, terminales y termocontráctil","PCB perforada (la protoboard no aguanta 2 A)"]],
+["Sellado y mecánica",["Silicona neutra","Pasamuros o racores","Bandeja bajo todo","Poste rígido y brazo para el sensor","Nivel de burbuja","Visera contra salpicaduras"]],
+["Protecciones",["Pulsador de paro","100 nF en los bornes de la bomba","100 nF + 10 µF en la alimentación del sensor","Schottky en serie LM2596→VIN (si el DevKit no trae diodo)","Boya de nivel mínimo en la reserva (opcional)"]],
+["Medición",["Multímetro con amperios","Jarra de 1 L + cronómetro","Calibrador","Termómetro IR o ambiente"]]
+];
+const SY={ok:"✓ Correcto",wn:"⚠ Verificar",ko:"✗ Corregir"};
+let S={c:{},p:{}},flt="all";
+try{const r=localStorage.getItem("lcn1");if(r)S=JSON.parse(r)}catch(e){}
+const save=()=>{try{localStorage.setItem("lcn1",JSON.stringify(S))}catch(e){}};
+const esc=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function render(){
+ const vis=I.filter(x=>flt==="all"||(flt==="todo"?!S.c[x[0]]:x[6]===flt));
+ document.getElementById("main").innerHTML=vis.map(x=>`<div class="it${S.c[x[0]]?" done":""}"><div class="row"><input type="checkbox" id="c_${x[0]}" data-k="${x[0]}"${S.c[x[0]]?" checked":""} aria-label="Comprado: ${esc(x[1])}"><div><div class="nm">${esc(x[1])} <span class="qt">× ${esc(x[2])}</span></div><p class="sp">${esc(x[3])}</p></div><span class="bd ${x[6]}">${SY[x[6]]}</span></div><details><summary>Por qué y alternativa</summary><p>${esc(x[4])}</p>${x[5]!=="—"?`<p><b>Alternativa:</b> ${esc(x[5])}</p>`:""}</details><div class="pr"><label for="p_${x[0]}">Precio (COP)</label><input type="number" inputmode="numeric" min="0" step="1000" id="p_${x[0]}" data-p="${x[0]}" value="${S.p[x[0]]||""}"></div></div>`).join("")||'<p class="sub">No hay ítems con este filtro.</p>';
+ document.getElementById("fal").innerHTML=F.map((g,i)=>`<h3>${g[0]}</h3>`+g[1].map((t,j)=>{const k="f"+i+"_"+j;return `<div class="f${S.c[k]?" done":""}"><input type="checkbox" id="c_${k}" data-k="${k}"${S.c[k]?" checked":""}><label for="c_${k}">${esc(t)}</label></div>`}).join("")).join("");
+ stats();
+}
+function stats(){
+ const ks=I.map(x=>x[0]).concat(F.flatMap((g,i)=>g[1].map((_,j)=>"f"+i+"_"+j)));
+ const n=ks.filter(k=>S.c[k]).length,pc=n/ks.length,h=88*pc;
+ const w=document.getElementById("wt");w.setAttribute("y",94-h);w.setAttribute("height",h);
+ document.getElementById("st").textContent=n+" de "+ks.length+" comprados ("+Math.round(pc*100)+" %)";
+ const tot=I.reduce((a,x)=>a+(+S.p[x[0]]||0),0);
+ document.getElementById("tot").textContent=tot?"Total estimado de la lista principal: $"+tot.toLocaleString("es-CO")+" COP":"";
+}
+document.addEventListener("change",e=>{const t=e.target;
+ if(t.dataset.k){S.c[t.dataset.k]=t.checked;save();render();const el=document.getElementById(t.id);if(el)el.focus()}
+});
+document.addEventListener("input",e=>{const t=e.target;
+ if(t.dataset.p){S.p[t.dataset.p]=t.value;save();stats()}
+});
+document.getElementById("fl").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+ flt=b.dataset.f;document.querySelectorAll("#fl button").forEach(x=>x.setAttribute("aria-pressed",x===b));render()});
+render();
+</script></body></html>

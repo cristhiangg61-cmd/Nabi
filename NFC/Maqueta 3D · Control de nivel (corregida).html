@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maqueta 3D · Control de nivel (corregida)</title>
+<style>
+:root{--bg:#eef2ee;--fg:#1d2b22;--panel:#ffffffe6;--ac:#1f6b3a;--bd:#c9d6cc;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111815;--fg:#e4ede7;--panel:#16201be6;--ac:#5fc383;--bd:#2c3b33}}
+:root[data-theme="dark"]{--bg:#111815;--fg:#e4ede7;--panel:#16201be6;--ac:#5fc383;--bd:#2c3b33}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:13px/1.35 system-ui,sans-serif;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.p{position:fixed;background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;backdrop-filter:blur(6px)}
+#ui{top:calc(env(safe-area-inset-top,0px) + 8px);left:8px;width:260px;max-height:calc(100% - 70px);overflow:auto}
+h1{font-size:14px;margin:0 0 6px;color:var(--ac)}
+label{display:block;margin:2px 0}
+input[type=range]{width:100%}
+button{background:var(--ac);color:#fff;border:0;border-radius:6px;padding:6px 9px;margin:3px 3px 0 0;font:inherit;cursor:pointer}
+button.s{background:transparent;color:var(--fg);border:1px solid var(--bd)}
+#ro{font-variant-numeric:tabular-nums;margin-top:6px}
+#tab{right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);max-width:min(440px,calc(100% - 16px));max-height:55%;overflow:auto}
+#tab summary{cursor:pointer;font-weight:600}
+#tab table{border-collapse:collapse;margin-top:6px;width:100%}
+#tab td{border-top:1px solid var(--bd);padding:3px 4px;vertical-align:top}
+i.k{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+small{opacity:.75}
+</style></head><body>
+<canvas id="c"></canvas>
+<div class="p" id="ui">
+<h1>Control de nivel · Maqueta 3D</h1>
+<label><input type="checkbox" id="tC" checked> Cables</label>
+<label><input type="checkbox" id="tL" checked> Etiquetas</label>
+<label><input type="checkbox" id="tK" checked> Cono del ultrasonido (15° total)</label>
+<div style="margin-top:6px">Referencia r: <b id="rv">12</b> cm
+<input type="range" id="r" min="6" max="20" step="0.5" value="12"></div>
+<div>Nivel h manual: <b id="hv">6</b> cm
+<input type="range" id="h" min="0" max="25" step="0.1" value="6"></div>
+<button id="go">Iniciar lazo PI</button><button id="dist" class="s">Abrir válvula</button><button id="rs" class="s">Reiniciar</button>
+<div id="ro"></div>
+<div style="margin-top:6px">Vista:
+<button class="s" data-v="0">General</button><button class="s" data-v="1">Electrónica</button><button class="s" data-v="2">Sensor</button></div>
+<small>Arrastra para girar · rueda/pellizco para zoom. Componentes electrónicos ampliados. Planta no lineal (Torricelli + zona muerta 6 % + retardo 2 s), sensor con ruido, mediana y filtro; PI con Kp=6,7 y Ti=40 s, Ts=0,5 s, acelerado ×8.</small>
+</div>
+<details class="p" id="tab"><summary>Tabla de conexiones</summary>
+<table>
+<tr><td><i class="k" style="background:#e53935"></i>+12 V</td><td>Fuente + → fusible 3 A → interruptor → riel +12 V → Cap. 470 µF (+), LM2596 IN+, bornera bomba (+) y cátodo del diodo flyback</td></tr>
+<tr><td><i class="k" style="background:#222"></i>GND</td><td>Riel GND común: fuente −, Cap. −, LM2596 IN−/OUT−, ESP32 GND, Source MOSFET, 10 kΩ, 2 kΩ, HC-SR04 GND</td></tr>
+<tr><td><i class="k" style="background:#2a6fdb"></i>Bomba −</td><td>Bornera bomba (−) / ánodo del diodo → Drenaje del MOSFET</td></tr>
+<tr><td><i class="k" style="background:#a24bd6"></i>PWM</td><td>GPIO25 → R 220 Ω → Gate; Gate → R 10 kΩ → GND</td></tr>
+<tr><td><i class="k" style="background:#ff8a00"></i>5 V</td><td>LM2596 OUT+ → ESP32 VIN y HC-SR04 VCC</td></tr>
+<tr><td><i class="k" style="background:#2fb344"></i>Trig</td><td>GPIO17 (mejor que GPIO5, pin de arranque) → Trig, pulso 10 µs</td></tr>
+<tr><td><i class="k" style="background:#f2c200"></i>Echo</td><td>Echo → R 1 kΩ → nodo → GPIO18; nodo → R 2 kΩ → GND (3,33 V)</td></tr>
+<tr><td>Cambios</td><td>Diodo SS34 (3 A) en vez de 1N5819; fusible 3 A; haz del sensor 15° totales; compensar c = 331,3 + 0,606·T</td></tr>
+<tr><td>Geometría</td><td>Tanque Ø12 × 25 cm, Hs = 30 cm; h = Hs − d; con tanque lleno d = 5 cm</td></tr>
+</table></details>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const T=THREE,dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const cv=document.getElementById('c'),sc=new T.Scene();
+sc.background=new T.Color(dark?0x111815:0xeef2ee);
+const cam=new T.PerspectiveCamera(45,1,1,1000),ren=new T.WebGLRenderer({canvas:cv,antialias:true});
+ren.setPixelRatio(Math.min(devicePixelRatio,2));
+sc.add(new T.AmbientLight(0xffffff,.7));
+const dl=new T.DirectionalLight(0xffffff,.8);dl.position.set(40,90,60);sc.add(dl);
+const M=(c,o={})=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.6},o));
+const G=2,E=2.6,H0=18;
+function box(w,h,d,x,y,z,m,p=sc){const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);p.add(o);return o}
+function cyl(r,h,x,y,z,m,rot,p=sc,seg=28){const o=new T.Mesh(new T.CylinderGeometry(r,r,h,seg),m);o.position.set(x,y,z);if(rot)o.rotation.z=Math.PI/2;p.add(o);return o}
+const gC=new T.Group(),gL=new T.Group(),gK=new T.Group();sc.add(gC,gL,gK);
+function lab(t,x,y,z){const c=document.createElement('canvas'),g=c.getContext('2d');g.font='bold 26px system-ui';const w=Math.ceil(g.measureText(t).width)+20;c.width=w;c.height=40;g.font='bold 26px system-ui';g.fillStyle=dark?'#16201bdd':'#ffffffdd';g.fillRect(0,0,w,40);g.fillStyle=dark?'#e4ede7':'#1d2b22';g.fillText(t,10,29);const s=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(c),depthTest:false}));s.scale.set(w*.055,2.2,1);s.position.set(x,y,z);s.renderOrder=10;gL.add(s)}
+function wire(col,pts,r=.2){const c=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(...p)),false,'catmullrom',.08);gC.add(new T.Mesh(new T.TubeGeometry(c,pts.length*14,r,6),M(col)))}
+box(110,2,60,5,1,0,M(0xb08a5a));
+const rg=new T.BoxGeometry(30,14,22);
+const rvm=new T.Mesh(rg,M(0x9ec8e8,{transparent:true,opacity:.22,depthWrite:false}));rvm.position.set(-34,G+7,0);sc.add(rvm);
+rvm.add(new T.LineSegments(new T.EdgesGeometry(rg),new T.LineBasicMaterial({color:0x4a7aa0})));
+box(28.6,9,20.6,-34,G+.5+4.5,0,M(0x2a7fd0,{transparent:true,opacity:.55}));
+cyl(2.5,5,-34,G+3.5,0,M(0x1f3b66));cyl(.8,1.5,-34,G+6.3,0,M(0x1f3b66));
+box(18,16,18,0,G+8,0,M(0xc9a877));
+const tank=new T.Mesh(new T.CylinderGeometry(6,6,25,40),M(0xcfe9ff,{transparent:true,opacity:.16,depthWrite:false,side:T.DoubleSide}));tank.position.set(0,H0+12.5,0);sc.add(tank);
+const water=new T.Mesh(new T.CylinderGeometry(5.8,5.8,1,40),M(0x2a7fd0,{transparent:true,opacity:.7}));water.renderOrder=2;sc.add(water);
+box(.3,25,1.4,6.3,H0+12.5,0,M(0xf3d34a));
+for(let k=0;k<=5;k++)box(.5,.18,1.5,6.35,H0+5*k,0,M(0x222222));
+cyl(.6,3,-7.5,H0+2,0,M(0x888888),true);
+box(2.4,2.4,2.4,-9.5,H0+2,0,M(0xb59a3a));
+const vh=box(.5,.5,4,-9.5,H0+4.2,0,M(0xd32f2f));
+const oh=new T.CatmullRomCurve3([[-9,H0+2,0],[-14,H0+2,0],[-20,H0+1,0],[-24,H0-.5,0],[-27,H0-5,0]].map(p=>new T.Vector3(...p)));
+sc.add(new T.Mesh(new T.TubeGeometry(oh,30,.6,8),M(0x6fa0c8,{transparent:true,opacity:.8})));
+// manguera: ahora baja pegada a la pared (fuera del haz del sensor)
+const hoseM=M(0x3b6ea8,{emissive:0x1a66ff,emissiveIntensity:0});
+const ph=new T.CatmullRomCurve3([[-34,G+7,0],[-34,32,-3],[-28,48,-3],[-14,50,-2],[-7,47,-1],[-5.3,43,-1],[-5.3,36,-1]].map(p=>new T.Vector3(...p)));
+sc.add(new T.Mesh(new T.TubeGeometry(ph,50,.6,8),hoseM));
+box(2,49.25,2,14,26.6,0,M(0x777777));box(14,1.5,3,7,50.5,0,M(0x777777));
+box(4.5,.6,2,0,49.4,0,M(0x1565c0));
+cyl(.8,1.2,-1.2,48.4,0,M(0xcccccc));cyl(.8,1.2,1.2,48.4,0,M(0xcccccc));
+// CONO CORREGIDO: vértice arriba (sensor), semiángulo 7,5° (15° total); antes estaba invertido
+const TA=Math.tan(7.5*Math.PI/180);
+const cone=new T.Mesh(new T.ConeGeometry(30*TA,30,32,1,true),M(0xffd54f,{transparent:true,opacity:.2,depthWrite:false,side:T.DoubleSide}));gK.add(cone);
+// tablero
+box(30,.6,44,38,2.3,0,M(0x2e5d3a));
+box(12,6,8,43,E+3,-17,M(0x34495e));
+cyl(.5,3,33,E+.8,-14,M(0xe6d9b8),true);
+box(3,2.4,3,28,E+1.2,-14,M(0x444444));
+cyl(1.3,4,31,E+2,-9,M(0x222a55));
+box(7,1.6,3.5,43,E+.8,-8,M(0x1976d2));
+box(11,1.2,5.6,43,E+.8,4,M(0x111111));box(4,.3,3,40.5,E+1.35,4,M(0xaaaaaa));
+box(3,4,1.2,34,E+2,12,M(0x222222));box(3,3.5,.3,34,E+1.8,11.2,M(0x999999));
+[32.5,34,35.5].forEach(a=>box(.3,.3,1.1,a,E+.8,13.05,M(0xcccccc)));
+cyl(.5,4,39,E+.6,9.5,M(0xc8a26a),true);cyl(.5,4,39.5,E+.6,16.5,M(0xc8a26a),true);
+cyl(.5,3.5,46,E+.6,-2.25,M(0xc8a26a)).rotation.x=Math.PI/2;
+cyl(.5,3.5,47.8,E+.6,-2.25,M(0xc8a26a)).rotation.x=Math.PI/2;
+box(5,2.4,3,30,E+1.2,18,M(0x2e7d32));
+cyl(.45,3,30,E+2.2,21,M(0x111111),true);box(.5,1,1,28.9,E+2.2,21,M(0xdddddd));
+box(.8,.8,38,24,E+.4,-1,M(0x111111));box(.8,.8,38,26,E+.4,-1,M(0xc62828));
+// cableado
+const GR=z=>[24,E+.9,z],PR=z=>[26,E+.9,z];
+const up=(col,pin,rail,lift)=>wire(col,[pin,[pin[0],lift,pin[2]],[rail[0],lift,rail[2]],rail]);
+const RED='#e53935',BLK='#222222',ORG='#ff8a00',GRN='#2fb344',YEL='#f2c200',PUR='#a24bd6',BLU='#2a6fdb';
+wire(RED,[[37,E+4,-15.5],[35.5,E+4,-14],[34.5,E+.8,-14]]);
+wire(RED,[[31.5,E+.8,-14],[29.5,E+1.2,-14]]);
+wire(RED,[[26.5,E+1.2,-14],PR(-14)]);
+wire(BLK,[[37,E+2,-19.5],[30,E+2,-19.5],GR(-19.5)]);
+up(RED,[31.5,E+4,-9],PR(-9),E+7);up(BLK,[30.5,E+4,-9],GR(-9),E+6);
+up(RED,[39.5,E+1.6,-9],PR(-7),E+9);up(BLK,[39.5,E+1.6,-7],GR(-5),E+8);up(BLK,[46.5,E+1.6,-7],GR(-3),E+10.5);
+const OUT=[46.5,E+1.6,-9];
+wire(ORG,[OUT,[46.5,E+9,-9],[39,E+9,1.2],[39,E+1.5,1.2]]);
+up(BLK,[41,E+1.5,1.2],GR(2),E+13);
+wire(PUR,[[40,E+1.5,6.8],[41,E+.6,9.5]]);
+wire(PUR,[[37,E+.6,9.5],[35.5,E+.8,13.5]]);
+wire(PUR,[[35.5,E+.8,13.5],[37.5,E+.6,16.5]]);
+up(BLK,[41.5,E+.6,16.5],GR(16),E+5);
+up(BLK,[32.5,E+.8,13.5],GR(14),E+3);
+wire(BLU,[[31.5,E+2.8,18],[32,E+1,15.2],[34,E+.8,13.5]]);
+wire(RED,[[28.5,E+2.8,18],[27,E+2.8,17.5],PR(17)]);
+wire(RED,[[28.5,E+2.8,19.5],[28.5,E+2.2,21]],.15);wire(BLU,[[31.5,E+2.8,19.5],[31.5,E+2.2,21]],.15);
+wire(YEL,[[46,E+.6,-.5],[47.8,E+.6,-.5]],.15);wire(YEL,[[46,E+.6,-.5],[46,E+1.5,1.2]],.15);
+up(BLK,[47.8,E+.6,-4],GR(-1.5),E+8.5);
+wire(RED,[[28.5,E+3.4,18],[28.5,E+5,25],[-20,19,25],[-30,19,12.5],[-33,10,2],[-33.3,G+6,.8]]);
+wire(BLU,[[31.5,E+3.4,18],[31.5,E+5.4,26],[-20,19.4,26],[-29,19.4,13],[-32.4,10,2.5],[-34.7,G+6,.8]]);
+function sens(col,x,zi,lift,mid,end){const p=[x,49.4,-1.1];wire(col,[p,[x,49.4,zi],[14,49.4,zi],[14,lift,zi],...mid,end],.15)}
+sens(ORG,-1.5,-2.5,E+10,[[OUT[0],E+10,-2.5]],[OUT[0],E+1.6,-9]);
+sens(GRN,-.5,-3.1,E+11,[[44,E+11,-3.1]],[44,E+1.5,1.2]);
+sens(YEL,.5,-3.7,E+12,[[46,E+12,-3.7]],[46,E+.6,-4]);
+sens(BLK,1.5,-4.3,E+14,[[24,E+14,-4.3]],[24,E+.9,-1]);
+[['Tanque Ø12 × 25 cm',0,45,0],['Cinta métrica',9,34,3],['HC-SR04 (Hs = 30 cm)',0,54,0],['Válvula de salida = perturbación',-16,25,0],
+['Depósito de reserva',-34,19,0],['Bomba 12 V sumergible',-34,-2.5,6],['Manguera de entrada (pegada a la pared)',-22,53,-3],
+['Fuente 12 V ≥ 3 A',43,E+8,-17],['Fusible 3 A',33,E+4,-14],['Interruptor',28,E+4,-14],['Cap. 470 µF',31,E+6.5,-12],
+['LM2596 12→5 V',43,E+3.5,-8],['ESP32 DevKit',43,E+4,4],['MOSFET IRLZ44N',34,E+6,12],['R 220 Ω (GPIO25)',44,E+3,10],
+['R 10 kΩ (pull-down)',46,E+3,17],['R 1 kΩ',49,E+2.5,-4.5],['R 2 kΩ',50,E+2.5,-.5],['Bornera bomba',30,E+5,16],
+['Diodo SS34',30,E+4,22.5],['+12 V',26,E+2.5,-21],['GND común',22,E+2.5,-21]].forEach(a=>lab(...a));
+// cámara
+let th=1.15,ph0=1.15,rad=125,tg0=new T.Vector3(10,26,0),goal=null;
+function setCam(){cam.position.set(tg0.x+rad*Math.sin(ph0)*Math.cos(th),tg0.y+rad*Math.cos(ph0),tg0.z+rad*Math.sin(ph0)*Math.sin(th));cam.lookAt(tg0)}
+const ptr=new Map();let pd=0;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);goal=null});
+cv.addEventListener('pointerup',e=>{ptr.delete(e.pointerId);pd=0});
+cv.addEventListener('pointermove',e=>{if(!ptr.has(e.pointerId))return;const o=ptr.get(e.pointerId);
+if(ptr.size==1){th-=(e.clientX-o[0])*.007;ph0=Math.min(3,Math.max(.1,ph0-(e.clientY-o[1])*.007))}
+ptr.set(e.pointerId,[e.clientX,e.clientY]);
+if(ptr.size==2){const v=[...ptr.values()],d=Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1]);if(pd)rad=Math.min(300,Math.max(25,rad*pd/d));pd=d}});
+cv.addEventListener('wheel',e=>{e.preventDefault();rad=Math.min(300,Math.max(25,rad*(1+e.deltaY*.001)))},{passive:false});
+const views=[[10,26,0,125,1.15,1.15],[38,5,2,70,.6,1.0],[2,40,0,50,.9,1.35]];
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{goal=views[b.dataset.v]});
+// simulación: planta no lineal + sensor con ruido + PI con anti-windup
+const Kp=6.7,Ki=Kp/40,Ts=.5,A=113.1,Kb=1.414,kv=13.86,kv2=2.56;
+let run=false,h=6,I=30,u=30,rr=6,ym=6,raw,buf,dist=0,acc=0,tc=0;
+const $=id=>document.getElementById(id),eq=x=>6+kv*Math.sqrt(x)/Kb;
+function reset(){h=+$('h').value;I=eq(h);u=I;rr=h;ym=h;raw=[h,h,h];buf=new Array(20).fill(u);acc=0;tc=0}
+reset();
+$('go').onclick=()=>{run=!run;$('go').textContent=run?'Detener lazo':'Iniciar lazo PI';if(run)reset()};
+$('dist').onclick=()=>{dist=dist?0:1;$('dist').textContent=dist?'Cerrar válvula':'Abrir válvula'};
+$('rs').onclick=()=>{run=false;dist=0;$('go').textContent='Iniciar lazo PI';$('dist').textContent='Abrir válvula';$('h').value=6;reset()};
+$('r').oninput=()=>$('rv').textContent=$('r').value;
+$('h').oninput=()=>{if(!run){h=+$('h').value;ym=h}};
+$('tC').onchange=e=>gC.visible=e.target.checked;$('tL').onchange=e=>gL.visible=e.target.checked;$('tK').onchange=e=>gK.visible=e.target.checked;
+function step(){const ue=buf.shift();buf.push(u);
+h+=(Kb*Math.max(0,ue-6)-(kv+dist*kv2)*Math.sqrt(h))/A*.1;h=Math.max(0,Math.min(25,h));tc+=.1;
+if(Math.abs(tc/Ts-Math.round(tc/Ts))<1e-6){
+const r=+$('r').value;rr+=Math.max(-.25,Math.min(.25,r-rr));
+raw.push(Math.round((h+(Math.random()+Math.random()+Math.random()-1.5)*.3)/.17)*.17);raw.shift();
+ym+=.4*([...raw].sort((a,b)=>a-b)[1]-ym);
+if(ym>22.5){u=0}else{const e=rr-ym,uu=Kp*e+I,c=Math.max(0,Math.min(100,uu));if(uu===c)I+=Ki*Ts*e;u=c}}}
+let last=performance.now();
+function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;
+if(goal){const k=Math.min(1,dt*5);tg0.x+=(goal[0]-tg0.x)*k;tg0.y+=(goal[1]-tg0.y)*k;tg0.z+=(goal[2]-tg0.z)*k;rad+=(goal[3]-rad)*k;th+=(goal[4]-th)*k;ph0+=(goal[5]-ph0)*k}
+if(run){acc+=dt*8;while(acc>=.1){step();acc-=.1}$('h').value=h.toFixed(1)}else{u=0}
+const hh=Math.max(.01,h);water.scale.y=hh;water.position.y=H0+.2+hh/2;
+const d=30-h;cone.scale.set(d/30,d/30,d/30);cone.position.y=48-d/2; // vértice en el sensor, base en el agua
+vh.rotation.y=dist?Math.PI/2:0;
+hoseM.emissiveIntensity=run?u/100*.9:0;
+$('hv').textContent=h.toFixed(1);
+const rc=d*TA;
+$('ro').innerHTML=`d (sensor) = <b>${d.toFixed(1)} cm</b> · h real = <b>${h.toFixed(1)}</b>${run?' · h medido = <b>'+ym.toFixed(1)+'</b>':''} cm<br>Duty u = <b>${run?u.toFixed(0):'—'} %</b> · ${run?'lazo cerrado (r rampa = '+rr.toFixed(1)+' cm)':'lazo detenido'}${dist?' · válvula abierta':''}<br>Radio del haz en la superficie: <b>${rc.toFixed(1)} cm</b> ${rc<5.8?'✓ cabe en el tanque (r = 6)':'✗ toca la pared'}${ym>22.5&&run?'<br><b style="color:#d32f2f">Corte por sobrenivel (90 %) → duty = 0</b>':''}`;
+setCam();ren.render(sc,cam);requestAnimationFrame(frame)}
+function rs(){const w=innerWidth,h=innerHeight;ren.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+addEventListener('resize',rs);rs();requestAnimationFrame(frame);
+</script></body></html>
