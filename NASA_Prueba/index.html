@@ -1,0 +1,288 @@
+
+<!DOCTYPE html>
+<!-- Indica que el documento utiliza HTML5 -->
+
+<html lang="es">
+<!-- Elemento raíz del documento. lang="es" indica que el contenido está en español -->
+
+<head>
+    <!-- Contiene información y configuraciones generales de la página -->
+
+    <meta charset="UTF-8">
+    <!-- Permite utilizar caracteres especiales como ñ, acentos y símbolos -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Adapta el ancho de la página al dispositivo donde se visualiza.
+         initial-scale=1 establece el zoom inicial al 100% -->
+
+    <title>Misión Orbital · codec37</title>
+    <!-- Define el título que aparece en la pestaña del navegador -->
+
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Conecta el documento HTML con la hoja de estilos CSS.
+         Aquí se define el diseño, colores, tamaños y distribución visual -->
+
+</head>
+
+<body data-mode="explorer">
+<!-- Contiene todos los elementos visibles de la página web.
+         data-mode indica el modo de juego: "explorer" (niños) o "engineer" (ingeniero).
+         learn.js lo cambia y el CSS muestra u oculta controles según su valor -->
+
+    <main class="layout">
+    <!-- Contenedor principal de la aplicación.
+         La clase layout permite aplicar estilos mediante CSS -->
+
+        <section class="map-wrap">
+        <!-- Sección destinada a mostrar el mapa del sistema solar -->
+
+            <canvas id="map" aria-label="Mapa 2D del sistema solar"></canvas>
+            <!-- Canvas es un área de dibujo donde JavaScript puede representar
+                 gráficamente los planetas, órbitas y elementos del sistema solar.
+
+                 id="map" permite identificarlo desde JavaScript.
+                 aria-label proporciona una descripción accesible del elemento -->
+
+            <div id="hud" class="hud">
+                Elige destino y fecha de lanzamiento
+            </div>
+            <!-- HUD (Head-Up Display): muestra información sobre la misión
+                 directamente sobre el mapa, como mensajes y datos de vuelo -->
+
+            <div id="ascent" class="hidden">
+            <!-- Minijuego de ascenso (js/ascent.js): cubre el mapa hasta llegar a 100 km de altura -->
+                <canvas id="asc-canvas"></canvas>
+                <div class="asc-hud">
+                    <div>Altitud: <b id="asc-alt">0 km</b> / 100 km <button class="term" type="button" data-term="karman" aria-label="Explicar la línea de Kármán">?</button></div>
+                    <div>Combustible <progress id="asc-fuel" max="100" value="100"></progress></div>
+                </div>
+                <p id="asc-msg"></p>
+                <div class="asc-ctl">
+                    <button id="asc-thrust" type="button">🚀 Propulsor (mantén Espacio)</button>
+                    <button id="asc-retry" type="button" class="hidden">Reintentar</button>
+                    <button id="asc-exit" type="button">Salir</button>
+                </div>
+            </div>
+
+            <div id="builder" class="hidden"></div>
+            <!-- Constructor de misión (js/mission.js): objetivo, lanzador, energía, comunicaciones e instrumentos -->
+
+        </section>
+
+        <aside class="panel">
+        <!-- Panel lateral que contiene los controles y datos de la misión -->
+
+            <header class="top">
+                <h1>Misión Orbital</h1>
+                <!-- Título principal de la aplicación -->
+                <div class="modes" role="group" aria-label="Modo de juego">
+                    <button id="m-kid" type="button" aria-pressed="true">Explorador</button>
+                    <button id="m-eng" type="button" aria-pressed="false">Ingeniero</button>
+                </div>
+                <!-- Botones para cambiar entre el modo simple (niños) y el modo técnico -->
+            </header>
+
+            <p id="hint" class="hint" role="status"></p>
+            <!-- Pista dinámica: learn.js escribe aquí qué hacer a continuación -->
+
+            <button id="open-builder" type="button">Diseñar misión</button>
+            <!-- Vuelve a abrir el constructor de misión -->
+
+            <label>Destino
+                <select id="dest"></select>
+            </label>
+            <!-- Permite seleccionar el planeta o destino de la misión.
+                 El select se encuentra vacío inicialmente porque JavaScript
+                 puede agregar las opciones dinámicamente.
+
+                 id="dest" permite acceder al selector desde JavaScript -->
+
+            <label><span>Fecha de lanzamiento <button class="term" type="button" data-term="ventana" aria-label="Explicar: ventana">?</button></span>
+                <input type="date" id="date">
+            </label>
+            <!-- Campo para seleccionar la fecha de lanzamiento.
+                 input type="date" muestra un selector de fechas -->
+
+            <div class="row">
+            <!-- Agrupa horizontalmente los botones de control de fechas -->
+
+                <button id="prev" type="button">−30 días</button>
+                <!-- Botón que permite retroceder 30 días en la fecha seleccionada -->
+
+                <button id="next" type="button">+30 días</button>
+                <!-- Botón que permite avanzar 30 días en la fecha seleccionada -->
+
+                <button id="window" type="button">Mejor ventana</button>
+                <!-- Botón que permite buscar la mejor ventana de lanzamiento
+                     según las condiciones orbitales -->
+
+            </div>
+
+            <label class="kid"><span>Tamaño del tanque</span>
+                <input id="tank" type="range" min="1" max="10" value="5">
+                <output id="tank-out">5 de 10</output>
+            </label>
+            <!-- Control simple del modo Explorador: cada nivel equivale a 100 t de propelente.
+                 learn.js escribe ese valor en el campo "prop" del modo Ingeniero -->
+
+            <fieldset class="eng">
+            <!-- Agrupa los parámetros relacionados con el cohete (solo modo Ingeniero) -->
+
+                <legend>Cohete</legend>
+                <!-- Título del grupo de parámetros -->
+
+                <label><span>Isp (s) <button class="term" type="button" data-term="isp" aria-label="Explicar: isp">?</button></span>
+                    <input id="isp" type="number" value="450" min="200" max="1000">
+                </label>
+                <!-- Permite introducir el impulso específico del motor.
+                     Se mide en segundos y representa la eficiencia del motor.
+
+                     value="450": valor inicial.
+                     min="200": valor mínimo permitido.
+                     max="1000": valor máximo permitido -->
+
+                <label><span>Masa seca (t) <button class="term" type="button" data-term="masaseca" aria-label="Explicar: masaseca">?</button></span>
+                    <input id="dry" type="number" value="20" min="1">
+                </label>
+                <!-- Permite introducir la masa del cohete sin combustible.
+                     Se expresa en toneladas.
+                     value="20" establece la masa inicial -->
+
+                <label><span>Propelente (t) <button class="term" type="button" data-term="propelente" aria-label="Explicar: propelente">?</button></span>
+                    <input id="prop" type="number" value="500" min="1">
+                </label>
+                <!-- Permite establecer la cantidad de combustible o propelente.
+                     Se expresa en toneladas.
+                     value="500" establece la cantidad inicial -->
+
+                <label>Carga útil (t)
+                    <input id="pay" type="number" value="5" min="0.1" step="0.1">
+                </label>
+                <!-- Permite introducir la masa de la carga útil que transportará
+                     el cohete, por ejemplo, un satélite o instrumentos científicos.
+
+                     value="5": valor inicial de cinco toneladas.
+                     min="0.1": valor mínimo permitido.
+                     step="0.1": permite modificar el valor en incrementos de 0.1 -->
+
+            </fieldset>
+
+            <div class="gauge">
+                <progress id="gauge" max="100" value="0"></progress>
+                <span id="gauge-label"></span>
+            </div>
+            <!-- Medidor de combustible: porcentaje del Δv necesario que tiene el cohete -->
+
+            <dl class="readout eng">
+            <!-- Lista de descripción que muestra los resultados de los cálculos -->
+
+                <dt>Δv disponible / necesario <button class="term" type="button" data-term="dv" aria-label="Explicar: dv">?</button></dt>
+                <dd id="r-dv">–</dd>
+                <!-- Δv (Delta-v) representa el cambio de velocidad que puede
+                     proporcionar el cohete.
+
+                     El elemento dd muestra el resultado calculado por JavaScript.
+                     Inicialmente aparece un guion -->
+
+                <dt>Tiempo de vuelo</dt>
+                <dd id="r-days">–</dd>
+                <!-- Muestra la duración estimada del viaje espacial.
+                     JavaScript actualizará este valor -->
+
+                <dt>Ventana de lanzamiento</dt>
+                <dd id="r-win">–</dd>
+                <!-- Muestra información sobre las fechas favorables para lanzar
+                     el cohete, según la posición orbital de los planetas -->
+
+            </dl>
+
+            <button id="launch" class="primary" type="button">Lanzar</button>
+            <!-- Botón principal que ejecuta la simulación del lanzamiento.
+                 La clase primary permite darle un estilo visual destacado -->
+
+            <p id="msg" role="status"></p>
+            <!-- Espacio destinado a mostrar mensajes al usuario.
+                 Por ejemplo: lanzamiento exitoso, misión no viable o errores.
+
+                 role="status" permite que los lectores de pantalla
+                 anuncien los cambios de contenido -->
+
+            <details id="calc">
+                <summary>Ver el cálculo paso a paso</summary>
+                <ol id="steps"></ol>
+                <button class="term wide" type="button" data-term="sci" aria-label="Explicar: sci">¿Qué es 10ⁿ?</button>
+            </details>
+            <!-- Cálculo explicado: learn.js lo rellena con frases (niños) o fórmulas con notación científica -->
+
+            <div class="row">
+                <button id="gl-all" type="button">Glosario</button>
+                <button id="apod" type="button">Foto del día (APOD)</button>
+            </div>
+            <!-- Botón que permite solicitar la fotografía astronómica del día
+                 mediante la API de la NASA -->
+
+            <div id="apodbox"></div>
+            <!-- Contenedor donde JavaScript puede insertar la fotografía
+                 y la información obtenida de la API de la NASA -->
+
+        </aside>
+
+    </main>
+
+    <dialog id="glossary">
+        <div id="gl-body"></div>
+        <button id="gl-close" type="button">Cerrar</button>
+    </dialog>
+    <!-- Ventana emergente del glosario: siglas en idioma original y español, versión fácil y técnica -->
+
+    <dialog id="report">
+        <h3 id="rp-title"></h3>
+        <ul id="rp-list"></ul>
+        <button id="rp-close" type="button">Cerrar</button>
+    </dialog>
+    <!-- Reporte final de la misión: qué pasó en cada turno y por qué tuvo éxito o falló -->
+
+    <!-- Archivos JavaScript que contienen la lógica de la aplicación.
+         Se cargan al final del body para que los elementos HTML
+         estén disponibles cuando se ejecuten los scripts -->
+
+    <script src="js/config.js"></script>
+    <!-- Contiene configuraciones generales de la aplicación -->
+
+    <script src="js/data.js"></script>
+    <!-- Contiene los datos necesarios para la simulación,
+         como información de los planetas y sus características orbitales -->
+
+    <script src="js/physics.js"></script>
+    <!-- Contiene las funciones matemáticas y físicas utilizadas
+         para calcular velocidades, Δv y otros parámetros de la misión -->
+
+    <script src="js/api.js"></script>
+    <!-- Gestiona las conexiones con servicios externos,
+         como la API de la NASA -->
+
+    <script src="js/glossary.js"></script>
+    <!-- Textos del glosario (siglas, idioma original, explicaciones) -->
+
+    <script src="js/learn.js"></script>
+    <!-- Capa educativa: modos Explorador/Ingeniero, pistas y cálculo paso a paso.
+         Debe cargarse antes de main.js -->
+
+    <script src="js/map.js"></script>
+    <!-- Se encarga de dibujar y actualizar el mapa del sistema solar
+         utilizando el elemento canvas -->
+
+    <script src="js/mission.js"></script>
+    <!-- Constructor de misión, puntuación y reporte final -->
+
+    <script src="js/ascent.js"></script>
+    <!-- Minijuego de ascenso a 100 km -->
+
+    <script src="js/main.js"></script>
+    <!-- Archivo principal que coordina la aplicación.
+         Gestiona los eventos de los botones, los controles,
+         los cálculos y la actualización de la interfaz -->
+
+</body>
+</html>
+<!-- Fin del documento HTML -->

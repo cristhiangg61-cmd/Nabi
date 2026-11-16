@@ -1,0 +1,379 @@
+:root {
+    --bg: #060914;
+    --panel: #0d1226;
+    --line: #232c52;
+    --text: #e6e9f5;
+    --muted: #8e97bd;
+    --amber: #ffb347;
+    --teal: #5eead4
+}
+
+* {
+    box-sizing: border-box
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    height: 100%
+}
+
+.map-wrap {
+    position: relative;
+    min-height: 320px
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    display: block
+}
+
+.hud {
+    position: absolute;
+    left: 16px;
+    bottom: 14px;
+    color: var(--muted)
+}
+
+.panel {
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    padding: 18px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.3rem
+}
+
+label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted)
+}
+
+input,
+select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font: inherit;
+    width: 150px
+}
+
+fieldset {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+.row {
+    display: flex;
+    gap: 6px
+}
+
+button {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font: inherit;
+    cursor: pointer;
+    flex: 1
+}
+
+button:hover {
+    border-color: var(--teal)
+}
+
+button.primary {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: #1a1100;
+    font-weight: 600
+}
+
+:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px
+}
+
+.readout {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 10px;
+    margin: 0
+}
+
+.readout dt {
+    color: var(--muted)
+}
+
+.readout dd {
+    margin: 0;
+    text-align: right
+}
+
+#msg {
+    min-height: 3em;
+    margin: 0
+}
+
+#apodbox img {
+    max-width: 100%;
+    border-radius: 6px
+}
+
+@media(max-width:800px) {
+    .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 55vh auto;
+        height: auto
+    }
+
+    .panel {
+        border-left: 0;
+        border-top: 1px solid var(--line)
+    }
+}
+
+/* ===== Capa educativa: modo Explorador/Ingeniero, pistas, glosario ===== */
+
+.top {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px
+}
+
+.modes {
+    display:flex;
+    gap:4px
+}
+
+.modes button {
+    flex:none;
+    padding:5px 9px
+}
+
+.modes button[aria-pressed="true"] {
+    background:var(--teal);
+    border-color:var(--teal);
+    color:#04201c;
+    font-weight:600
+}
+
+.hint {
+    margin:0;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-left:4px solid var(--amber);
+    border-radius:6px;
+    background:var(--bg)
+}
+
+.term {
+    flex:none;
+    width:22px;
+    height:22px;
+    padding:0;
+    border-radius:50%;
+    font-size:.8rem;
+    color:var(--teal);
+    margin-left:4px
+}
+
+.term.wide {
+    width:auto;
+    border-radius:6px;
+    padding:4px 10px;
+    margin:6px 0 0
+}
+
+[data-mode="explorer"] .eng,[data-mode="engineer"] .kid {
+    display:none
+}
+
+.gauge {
+    display:flex;
+    flex-direction:column;
+    gap:4px
+}
+
+progress {
+    width:100%;
+    height:14px;
+    accent-color:var(--amber)
+}
+
+#steps {
+    margin:8px 0;
+    padding-left:20px;
+    display:flex;
+    flex-direction:column;
+    gap:6px
+}
+
+details>summary {
+    cursor:pointer;
+    color:var(--teal)
+}
+
+dialog {
+    background:var(--panel);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:10px;
+    max-width:560px;
+    max-height:80vh;
+    overflow:auto
+}
+
+dialog::backdrop {
+    background:rgba(0,0,0,.6)
+}
+
+dialog h3 {
+    margin:0 0 6px
+}
+
+dialog p {
+    margin:4px 0
+}
+
+dialog dt {
+    color:var(--amber);
+    margin-top:8px
+}
+
+dialog dd {
+    margin:0
+}
+
+/* ===== Constructor de misión, ascenso y reporte ===== */
+
+.hidden {
+    display:none !important
+}
+
+#builder {
+    position:absolute;
+    inset:0;
+    z-index:5;
+    background:rgba(6,9,20,.95);
+    overflow:auto;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:12px
+}
+
+#builder>* {
+    width:100%;
+    max-width:560px;
+    margin-left:auto;
+    margin-right:auto
+}
+
+#builder input[type=checkbox] {
+    width:auto
+}
+
+#b-err {
+    color:#fca5a5;
+    margin:0
+}
+
+#b-sum {
+    margin:0;
+    padding-left:18px
+}
+
+#ascent {
+    position:absolute;
+    inset:0;
+    z-index:6;
+    background:#000
+}
+
+#asc-canvas {
+    width:100%;
+    height:100%;
+    display:block
+}
+
+.asc-hud {
+    position:absolute;
+    top:14px;
+    left:14px;
+    right:14px;
+    display:flex;
+    justify-content:space-between;
+    color:#fff;
+    text-shadow:0 1px 4px #000
+}
+
+#asc-msg {
+    position:absolute;
+    top:60px;
+    left:0;
+    right:0;
+    text-align:center;
+    color:#fff;
+    text-shadow:0 1px 4px #000;
+    margin:0
+}
+
+.asc-ctl {
+    position:absolute;
+    bottom:24px;
+    left:0;
+    right:0;
+    display:flex;
+    justify-content:center;
+    gap:10px
+}
+
+.asc-ctl button {
+    flex:none;
+    padding:14px 28px;
+    font-size:1.05rem
+}
+
+#asc-thrust {
+    background:#b91c1c;
+    border-color:#fca5a5
+}
+
+#rp-list {
+    padding-left:18px;
+    display:flex;
+    flex-direction:column;
+    gap:6px
+}
+
+body[data-built] .kid {
+    display:none
+}
+
