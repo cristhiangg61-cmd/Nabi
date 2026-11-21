@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guiones de sustentación · Proyecto de aula Corte 3</title>
+<style>
+:root{--bg:#f2f4f0;--card:#fff;--fg:#1d2420;--mut:#5b665f;--bd:#d6dcd4;--acc:#5a3420;--acc2:#2f6b4f;--soft:#e6ece4;--warn:#b3382c;--warnbg:#fbeae7;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151a17;--card:#1e2521;--fg:#e8ece8;--mut:#9aa69e;--bd:#33403a;--acc:#e0b48f;--acc2:#7cc3a1;--soft:#27312b;--warn:#f08a7d;--warnbg:#3a2220;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151a17;--card:#1e2521;--fg:#e8ece8;--mut:#9aa69e;--bd:#33403a;--acc:#e0b48f;--acc2:#7cc3a1;--soft:#27312b;--warn:#f08a7d;--warnbg:#3a2220;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{display:grid;grid-template-columns:1fr;max-width:1100px;margin:0 auto}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:6px;overflow-x:auto;padding:8px 12px;border-bottom:1px solid var(--bd);padding-left:max(12px,env(safe-area-inset-left,0px))}
+nav button{flex:0 0 auto;border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:9px 14px;border-radius:20px;font:600 14px system-ui,sans-serif;min-height:40px}
+nav button[aria-current="true"]{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+main{padding:14px max(14px,env(safe-area-inset-right,0px)) 40px max(14px,env(safe-area-inset-left,0px));min-width:0}
+@media (min-width:640px) and (orientation:landscape),(min-width:900px){
+ .app{grid-template-columns:168px 1fr}
+ nav{top:0;height:100vh;height:100dvh;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-bottom:0;border-right:1px solid var(--bd);padding:12px 10px;padding-left:max(10px,env(safe-area-inset-left,0px))}
+ nav button{text-align:left;border-radius:10px}
+ main{padding-left:18px}
+}
+h1{font:700 22px/1.2 Georgia,serif;margin:6px 0 4px}
+h2{font:700 19px/1.25 Georgia,serif;margin:20px 0 8px}
+.sub{color:var(--mut);font-size:14px;margin:0 0 12px}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.grid .card{margin:0}
+.k{font-weight:700;color:var(--acc2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{background:var(--soft);border:1px solid var(--bd);border-radius:14px;padding:3px 10px;font-size:13px}
+.tag{font-size:12px;color:var(--mut);border:1px solid var(--bd);border-radius:10px;padding:1px 8px;white-space:nowrap}
+details.blk{background:var(--card);border:1px solid var(--bd);border-left:5px solid var(--acc2);border-radius:12px;margin:10px 0}
+details.blk.cur{border-left-color:var(--warn);box-shadow:0 0 0 2px var(--warn)}
+summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;gap:10px;align-items:center;min-height:52px}
+summary::-webkit-details-marker{display:none}
+.num{flex:0 0 32px;height:32px;border-radius:50%;background:var(--acc);color:var(--bg);display:grid;place-items:center;font-weight:700}
+.ttl{flex:1;font-weight:700;line-height:1.25}
+.ttl small{display:block;font-weight:400;color:var(--mut)}
+.bd{padding:0 14px 14px}
+.lbl{font-size:13px;font-weight:700;color:var(--mut);margin:10px 0 2px}
+.guion{font:17px/1.65 Georgia,serif;max-width:68ch;margin:4px 0 0}
+.guion em{color:var(--warn);font-style:normal;font-weight:600;font-family:system-ui,sans-serif;font-size:14px}
+body.solo .guion,body.solo .glbl{display:none}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.btn{border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:10px;padding:9px 14px;font:600 14px system-ui,sans-serif;min-height:42px}
+.btn.p{background:var(--acc2);border-color:var(--acc2);color:#fff}
+.clock{font:700 30px/1 ui-monospace,Menlo,monospace;min-width:84px}
+.clock.ok{color:var(--acc2)}.clock.bad{color:var(--warn)}
+.bar{display:flex;height:26px;border-radius:8px;overflow:hidden;border:1px solid var(--bd);margin:8px 0;position:relative}
+.bar div{display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;background:var(--acc2);border-right:1px solid var(--bg)}
+.bar div:nth-child(even){background:var(--acc)}
+.bar div.cur{background:var(--warn)}
+.bar i{position:absolute;top:0;bottom:0;width:2px;background:#000;opacity:.6}
+.note{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px;margin:10px 0}
+.warn{background:var(--warnbg);border:1px solid var(--warn);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:15px}
+.v2{display:grid;gap:10px}
+.v2 .card{border-left:5px solid var(--acc)}
+.chk{display:flex;gap:12px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid var(--bd);min-height:56px}
+.chk input{width:26px;height:26px;flex:0 0 26px;margin-top:2px;accent-color:var(--acc2)}
+.chk b{display:block}.chk span{color:var(--mut);font-size:14px}
+.chk.done b{text-decoration:line-through;color:var(--mut)}
+.prog{height:10px;background:var(--soft);border-radius:6px;overflow:hidden;margin:8px 0}
+.prog div{height:100%;background:var(--acc2);width:0;transition:width .2s}
+ol,ul{padding-left:22px;margin:6px 0}li{margin:5px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<nav id="nav" aria-label="Secciones"></nav>
+<main>
+
+<section id="metodo">
+<h1>Guiones de sustentación</h1>
+<p class="sub">Proyecto de aula · Corte 3 · Cristhian Gaitán Guzmán · Ciencia de Datos (Cód. 69109) · CORHUILA 2026-B · Actividad c3-project-defense-videos</p>
+<h2>El método: una historia en 6 frases</h2>
+<p>Para explicar sin leer, no memorices texto: memoriza el hilo. Cada bloque responde una sola pregunta y termina con una frase que empuja al siguiente.</p>
+<div id="hilo"></div>
+<h2>Cuatro analogías para sonar sencillo y seguro</h2>
+<div class="grid" id="analog"></div>
+</section>
+
+<section id="video1">
+<h1>Video 1 · Sustentación</h1>
+<p class="sub">Meta: 5:00, máximo 5:30. Las partes entre corchetes son acciones, no se dicen. El texto completo sirve para ensayar y como base de la transcripción; al grabar, habla desde la tarjeta de ideas.</p>
+<div class="card">
+ <div class="tools">
+  <div class="clock" id="clock">0:00</div>
+  <button class="btn p" id="go">Iniciar ensayo</button>
+  <button class="btn" id="rst">Reiniciar</button>
+  <button class="btn" id="solo" aria-pressed="false">Solo tarjetas</button>
+ </div>
+ <div class="bar" id="bar" aria-hidden="true"></div>
+ <div style="font-size:13px;color:var(--mut)">El cronómetro resalta el bloque en curso. Verde: dentro de 5:00 a 5:30. Rojo: pasaste de 5:30.</div>
+</div>
+<div id="blocks"></div>
+<div class="note"><b>Control de tiempo:</b> el guion tiene cerca de 700 palabras, que a ritmo tranquilo rinde unos 4:45 a 5:15 con la ejecución del cuaderno. Si en un ensayo pasas de 5:20, recorta en el bloque 4 la frase de los gráficos.</div>
+</section>
+
+<section id="video2">
+<h1>Video 2 · Publicitario</h1>
+<p class="sub">Máximo 60 segundos · ítem 10</p>
+<div class="card"><span class="k">Usuario concreto:</span> el jefe de compras de una trilladora de café del sur del Huila.<br><span class="k">Estructura:</span> problema (0 a 15 s), solución (15 a 45 s), cierre (45 a 60 s).</div>
+<div class="note"><b>Texto fijo en pantalla durante todo el video (letra pequeña):</b> Datos sintéticos · Proyecto de aula CORHUILA 2026-B.</div>
+<div class="v2" id="v2"></div>
+<div class="note">Son unas 125 palabras: a ritmo normal duran de 50 a 55 segundos. Cronométralo; no puede pasar de 60.</div>
+</section>
+
+<section id="grabar">
+<h1>Cómo grabarlo</h1>
+<p class="sub">Sencillo y gratis</p>
+<div class="card"><ul>
+<li><span class="k">Pantalla:</span> en Windows, Xbox Game Bar (tecla Windows + G) o OBS. Para el video de 5 minutos graba pantalla y voz juntas.</li>
+<li><span class="k">Voz:</span> solo la tuya, sin voces ni imágenes de terceros generadas con IA. Cuarto silencioso y el celular o micrófono cerca.</li>
+<li><span class="k">Formato:</span> horizontal.</li>
+<li><span class="k">Edición:</span> Clipchamp (viene con Windows) o CapCut para el video publicitario. El de 5 minutos puede ir sin edición; si te equivocas, repite la toma.</li></ul></div>
+<h2>Ensayo en tres pasadas</h2>
+<div class="card"><ol><li>Leer el guion completo con cronómetro.</li><li>Hablar solo con las tarjetas.</li><li>Grabar. Si grabas por bloques, une las tomas después.</li></ol></div>
+<h2>Transcripción (ítem 9)</h2>
+<p>Debe ser completa y fiel a lo que dices en el video, sin recortes ni texto inventado.</p>
+<div class="card"><ol>
+<li>Graba primero y transcribe después. El guion es el borrador, no la transcripción final.</li>
+<li>Sube el video a YouTube como no listado, abre YouTube Studio y en Subtítulos descarga o copia el texto automático.</li>
+<li>Corrígelo escuchando el video hasta que diga exactamente lo que dijiste (incluye cambios, muletillas importantes y lo que improvisaste).</li>
+<li>Pega el texto final en la actividad.</li></ol></div>
+<h2>Qué pegar en la actividad</h2>
+<div class="card"><ul><li>Enlace del video de sustentación (YouTube no listado, Drive u OneDrive).</li><li>Enlace del video publicitario.</li><li>Transcripción completa del video de sustentación.</li><li>Nombre completo: Cristhian Gaitán Guzmán.</li></ul></div>
+</section>
+
+<section id="checklist">
+<h1>Lista de control antes de enviar</h1>
+<p class="sub">Toca cada ítem para marcarlo. Se guarda en este navegador.</p>
+<div class="prog"><div id="pb"></div></div>
+<div id="pt" class="sub"></div>
+<div class="card" id="chk" style="padding:4px 12px"></div>
+<button class="btn" id="clr">Desmarcar todo</button>
+<h2>Cuidados importantes</h2>
+<div class="warn"><b>No cambies nada del proyecto entregado.</b> Lo que muestres debe coincidir con lo entregado; si no, los ítems 5 y 7 valen 0. No edites el cuaderno ni las cifras antes de grabar.</div>
+<div class="warn"><b>Electiva VI frente a VIII:</b> el cuaderno dice Electiva VIII y la rúbrica dice VI. No lo cambies; en el video di solo Ciencia de Datos, código 69109.</div>
+<div class="warn"><b>Hora de cierre:</b> el PDF de la rúbrica no la indica. Confírmala en la actividad de Moodle; pasada la hora no se reciben entregas.</div>
+<div class="warn"><b>Si algo falla al ejecutar:</b> repite la toma. Con la semilla 7159 las salidas deben ser las mismas que las del trabajo entregado.</div>
+</section>
+
+</main>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const TABS=[['metodo','Método'],['video1','Video 1'],['video2','Video 2'],['grabar','Grabar'],['checklist','Control']];
+const HILO=[['Problema','¿Quién entrega el café que rinde peor, y cuándo?'],['Demostración','Datos sucios entran, datos limpios salen, sin inventar nada.'],['Fragmento','El KPI se calcula con totales, no con promedios.'],['Decisiones','Imposible se elimina, atípico se conserva, vacío no se inventa.'],['Hallazgos','Un promedio sano escondía dos problemas distintos.'],['Cierre','Tres acciones con responsable y fecha, y honestidad sobre los límites.']];
+const AN=[['Totales frente a promedio','Es el promedio de notas por créditos. Una materia de 4 créditos pesa más que una de 1.'],['Imposible frente a atípico','Una persona de 3 metros no existe (se descarta); una de 2,10 m es rara pero real (se estudia).'],['Tabi no es el culpable','Es como decir que los hospitales enferman a la gente porque ahí hay más enfermos. Parece que la variedad causa el problema, pero es el proveedor.'],['Alerta con falsas alarmas','Es una alarma de humo. Prefieres que suene de más a que no suene cuando hay fuego.']];
+const B=[
+{t:'Problema y alcance',r:'0:00 a 0:40',s:0,e:40,i:'ítem 4',p:'Diapositiva 1.',k:'yo · trilladora ficticia · 24 proveedores · pregunta · jefe de compras · incluye / no incluye · semilla 7159',g:'Hola, soy Cristhian Gaitán Guzmán, estudiante de CORHUILA, y este es mi proyecto de aula del Corte 3 de Ciencia de Datos, hecho de forma individual. Imaginé una trilladora de café en Pitalito, Huila, que compra café pergamino a 24 proveedores y guarda cada lote en archivos sueltos. La pregunta es: ¿qué proveedores y qué meses entregaron el café que rinde peor? Le sirve al jefe de compras, para decidir a quién visitar. El proyecto incluye limpieza, una base SQLite, cuatro consultas y un tablero. No incluye datos reales ni predicciones: la empresa y los datos son ficticios, generados con la semilla 7159.'},
+{t:'Demostración real',r:'0:40 a 1:55',s:40,e:115,i:'ítems 5 y 6',p:'JupyterLab. Menú Kernel y luego Restart Kernel and Run All Cells. Deja que corra mientras hablas y baja por el cuaderno siguiendo lo que dices.',k:'ejecuto todo · carga 1.882 y 24 · limpieza en 6 pasos · quedan 1.818 · SQLite · gráficos',g:'Ahora lo muestro funcionando. Reinicio el kernel y ejecuto todo el cuaderno, de principio a fin. [mientras corre] Primero, la carga: se generan 1.882 filas de lotes y un Excel con 24 proveedores, con los defectos típicos de datos reales. Segundo, la limpieza, en seis pasos con bitácora: quito 45 copias exactas, unifico códigos como «p-7» y «P007», dejo las fechas en un solo formato, y elimino 6 lotes sin kilos de excelso y 13 valores imposibles. Quedan 1.818 lotes. Tercero, la base SQLite, con dos tablas, proveedor y lote, y cuatro consultas. Y al final, los gráficos y el tablero. [solo si es verdad] Terminó sin errores.'},
+{t:'Fragmento explicado con mis palabras',r:'1:55 a 2:50',s:115,e:170,i:'ítem 7',p:'La celda de la consulta Q1 (factor por mes), con la fórmula SUM sobre SUM a la vista.',k:'qué es el factor · menos es mejor · SUM sobre SUM · notas por créditos · ejemplo 96,7 frente a 93,9',g:'Quiero explicar un fragmento: la consulta que calcula el factor por mes. El factor de rendimiento es 70 por los kilos de pergamino, dividido entre los kilos de excelso: dice cuánto pergamino hace falta para un saco de 70 kilos de excelso, y menos es mejor. La decisión clave es usar totales, SUM sobre SUM, y no el promedio de los factores de cada lote. Es como el promedio de notas: una materia de cuatro créditos pesa más que una de uno. Con un lote de 1.000 kilos con factor 93,3 y otro de 100 kilos con factor 100, el promedio simple da 96,7, pero con totales da 93,9, que es lo que realmente pasó.'},
+{t:'Decisiones técnicas',r:'2:50 a 3:40',s:170,e:220,i:'ítem 6',p:'La celda de atípicos y luego el tablero.',k:'imposible se elimina · atípico se conserva (74, 4,1 %) · humedad vacía no se rellena (55) · promedio móvil de 3 meses · rojo = peor',g:'Otras decisiones. Diferencié dato imposible de atípico. Imposible rompe una regla física, como un excelso mayor que el pergamino: se elimina. Atípico es raro pero posible, como un factor de 98: se conserva. Son 74 lotes, el 4,1 %, y los de factor alto vienen casi todos de P012, P004 y P017; borrarlos sería borrar el hallazgo. A la humedad vacía, 55 lotes, no la rellené: no entra al KPI e inventarla falsearía el análisis de humedad. En los gráficos, uso un promedio móvil de tres meses, también con totales, para ver la tendencia y no el ruido de un mes. En el tablero, el rojo marca lo peor que la referencia de 94 o lo que empeoró.'},
+{t:'Hallazgos',r:'3:40 a 4:30',s:220,e:270,i:'ítem 8',p:'El tablero, señalando cada gráfico con el cursor.',k:'93,37 · 92,89 a 93,78 · abril y mayo · P004 y P017 todo el año · P012, P021, P010 desde abril · humedad 13 % a 26 % · Tabi',g:'¿Qué encontré? El factor global es 93,37, mejor que la referencia de 94, pero sube de 92,89 a 93,78 entre semestres, y solo abril y mayo la superan. Ese promedio sano esconde dos problemas distintos. Primero, P004 y P017 están mal todo el año: 97,83 y 97,53. Segundo, P012, P021 y P010 empeoraron más de 4 kilos desde abril. El mecanismo asociado es la humedad: los lotes fuera de 10 a 12 % pasaron de 13 % a 26 % y rinden 95,7 frente a 92,9. Y Tabi parece la variedad peor, pero sin esos cinco proveedores rinde 92,6: era un efecto de P012, que entrega el 57 % del Tabi.'},
+{t:'Recomendación, límites y mejoras',r:'4:30 a 5:00',s:270,e:300,i:'ítem 8',p:'Diapositiva 6.',k:'3 acciones + alerta · sintéticos · asociación, no causa · 4 falsas alarmas · datos reales, visita, lluvia',g:'Recomiendo tres acciones: visita técnica de secado a P012, P021 y P010, plan de secado o ajuste de precio a P004 y P017, y medir la humedad de cada lote; más una alerta mensual. Los límites: los datos son sintéticos, así que esto valida el método, no describe una trilladora real; la humedad es una asociación, no una causa probada; y la alerta da 4 falsas alarmas en meses lluviosos. Mejoraría usando datos reales, confirmando la causa con la visita de secado y ajustando la alerta con la lluvia. Gracias.'}];
+const V2=[['0 a 15 s','Hojas de cálculo y lotes sueltos (usa la captura del Excel de proveedores o de la tabla sucia)','Eres jefe de compras de una trilladora de café. Recibes lotes de 24 proveedores, anotados en archivos sueltos, y a fin de año tu café rinde peor de lo esperado. ¿Quién fue? ¿En qué mes empezó? Nadie lo sabe.'],['15 a 45 s','tablero.png, con un zoom a cada gráfico','Del dato a la decisión junta esos registros, los limpia y los convierte en un tablero. En una sola vista ves quién entrega el café que rinde peor, cuándo empeoró y por qué: la humedad. En el ejemplo, cinco proveedores explican el problema y un promedio sano de 93,37 lo escondía.'],['45 a 60 s','Diapositiva 6, y al final el título','Con tres acciones claras, con responsable y fecha, decides a quién visitar primero, sin adivinar. Del dato a la decisión.']];
+const CK=[['Entrega completa','Los dos enlaces abren en ventana de incógnito, sin iniciar sesión; están la transcripción y tu nombre'],['Duración','Sustentación entre 5:00 y 5:30; publicitario máximo 60 s'],['Participación','Hablas tú en primera persona'],['Problema y alcance','Dices qué problema, para quién y qué incluye y qué no'],['Demostración','El cuaderno corre completo, sin errores, y se ven carga, limpieza, SQLite y gráficos'],['Decisiones','Explicas limpieza, KPI con totales, métricas y gráficos, y por qué'],['Dominio','El fragmento lo explicas sin leer'],['Resultados y límites','Interpretas hallazgos y dices sintéticos, asociación y mejoras'],['Transcripción','Coincide con lo dicho en el video'],['Publicitario','Problema, solución y cierre, a un usuario concreto, con buen audio e imagen']];
+
+$('#hilo').innerHTML=HILO.map((h,i)=>`<div class="card"><span class="k">${i+1}. ${h[0]}</span><br>${h[1]}</div>`).join('');
+$('#analog').innerHTML=AN.map(a=>`<div class="card"><span class="k">${a[0]}</span><br>${a[1]}</div>`).join('');
+$('#blocks').innerHTML=B.map((b,i)=>`<details class="blk" id="b${i}" ${i==0?'open':''}><summary><span class="num">${i+1}</span><span class="ttl">${b.t}<small>${b.r} · ${b.i}</small></span></summary><div class="bd"><div class="lbl">En pantalla</div>${b.p}<div class="lbl">Tarjeta de ideas</div><div class="chips">${b.k.split(' · ').map(x=>`<span class="chip">${x}</span>`).join('')}</div><div class="lbl glbl">Guion</div><p class="guion">${b.g.replace(/\[(.*?)\]/g,'<em>[$1]</em>')}</p></div></details>`).join('');
+$('#bar').innerHTML=B.map((b,i)=>`<div id="s${i}" style="flex:${b.e-b.s}">${i+1}</div>`).join('')+'<i style="left:'+(300/330*100)+'%"></i>';
+$('#v2').innerHTML=V2.map(v=>`<div class="card"><span class="tag">${v[0]}</span><div class="lbl">Imagen</div>${v[1]}<div class="lbl">Texto que dices</div><p class="guion" style="margin-top:0">${v[2]}</p></div>`).join('');
+
+/* nav + hash */
+$('#nav').innerHTML=TABS.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');
+function show(id){if(!TABS.some(t=>t[0]===id))id='metodo';document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===id));document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.t===id));window.scrollTo(0,0)}
+$('#nav').onclick=e=>{const t=e.target.closest('button');if(t){location.hash=t.dataset.t}};
+addEventListener('hashchange',()=>show(location.hash.slice(1)));show(location.hash.slice(1));
+
+/* modo solo tarjetas */
+$('#solo').onclick=function(){const on=document.body.classList.toggle('solo');this.setAttribute('aria-pressed',on);this.textContent=on?'Ver guion':'Solo tarjetas'};
+
+/* cronómetro de ensayo */
+let t0=0,acc=0,iv=null;
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function tick(){const s=acc+(iv?(Date.now()-t0)/1000:0);const c=$('#clock');c.textContent=fmt(s);c.className='clock'+(s>330?' bad':s>=300?' ok':'');
+ let cur=-1;if(s>0)B.forEach((b,i)=>{if(s>=b.s)cur=i});
+ B.forEach((b,i)=>{$('#s'+i).classList.toggle('cur',i===cur&&!!iv);const d=$('#b'+i);d.classList.toggle('cur',i===cur&&!!iv);if(i===cur&&iv&&!d.open){B.forEach((_,j)=>$('#b'+j).open=false);d.open=true}})}
+$('#go').onclick=function(){if(iv){acc+=(Date.now()-t0)/1000;clearInterval(iv);iv=null;this.textContent='Continuar'}else{t0=Date.now();iv=setInterval(tick,250);this.textContent='Pausar'}tick()};
+$('#rst').onclick=()=>{clearInterval(iv);iv=null;acc=0;$('#go').textContent='Iniciar ensayo';tick()};
+
+/* checklist */
+let st={};try{st=JSON.parse(localStorage.getItem('c3chk')||'{}')}catch(e){}
+function drawChk(){$('#chk').innerHTML=CK.map((c,i)=>`<label class="chk ${st[i]?'done':''}"><input type="checkbox" data-i="${i}" ${st[i]?'checked':''}><div><b>${i+1}. ${c[0]}</b><span>${c[1]}</span></div></label>`).join('');const n=CK.filter((_,i)=>st[i]).length;$('#pb').style.width=n*10+'%';$('#pt').textContent=n+' de 10 listos'}
+function save(){try{localStorage.setItem('c3chk',JSON.stringify(st))}catch(e){}}
+$('#chk').onchange=e=>{const i=e.target.dataset.i;if(i!==undefined){st[i]=e.target.checked;save();drawChk()}};
+$('#clr').onclick=()=>{st={};save();drawChk()};
+drawChk();
+</script>
+</body>
+</html>
